@@ -273,7 +273,7 @@ fun DebugWorkspaceScreen(
                     CircularProgressIndicator(color = AccentPrimary, modifier = Modifier.size(54.dp))
                     Text(uiState.loadingStage, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     LinearProgressIndicator(
-                        progress = { uiState.loadingProgress },
+                        progress = uiState.loadingProgress,
                         modifier = Modifier.width(220.dp),
                         color = AccentSecondary,
                         trackColor = BgCard

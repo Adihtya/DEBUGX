@@ -82,6 +82,7 @@ dependencies {
     // Image loading for screenshots
     implementation(libs.coil.compose)
 
+    debugImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

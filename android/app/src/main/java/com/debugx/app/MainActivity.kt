@@ -3,7 +3,6 @@ package com.debugx.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -31,11 +31,10 @@ import com.debugx.app.ui.theme.*
 import com.debugx.app.viewmodel.DebugViewModel
 
 class MainActivity : ComponentActivity() {
-    private val debugViewModel: DebugViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val debugViewModel: DebugViewModel = viewModel()
             DebugXTheme {
                 MainAppScreen(viewModel = debugViewModel)
             }
