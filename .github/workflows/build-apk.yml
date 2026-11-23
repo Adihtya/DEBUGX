@@ -32,18 +32,16 @@ jobs:
         run: |
           ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee ../gradle-build.log
 
-      - name: Upload Build Log on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log
-          path: gradle-build.log
+      - name: Locate and list generated APK
+        run: |
+          echo "=== Finding all generated APK files ==="
+          find . -name "*.apk" -ls
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DebugX-v1.0.0-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: "android/app/build/outputs/apk/**/*.apk"
           if-no-files-found: error
           retention-days: 30
 
@@ -64,6 +62,6 @@ jobs:
             - **Target SDK:** Android 14 (API 34)
             - **Min SDK:** Android 8.0 (API 26)
             - **Built with:** Kotlin, Jetpack Compose, Material 3, Google Gemini AI SDK
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: "android/app/build/outputs/apk/**/*.apk"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
