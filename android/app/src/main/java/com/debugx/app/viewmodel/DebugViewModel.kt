@@ -3,10 +3,7 @@ package com.debugx.app.viewmodel
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.debugx.app.data.model.ChatMessage
-import com.debugx.app.data.model.DebugResponse
-import com.debugx.app.data.model.ExplanationMode
-import com.debugx.app.data.model.SampleData
+import com.debugx.app.data.model.*
 import com.debugx.app.data.repository.DebugRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +23,35 @@ data class DebugUiState(
     val errorMessage: String? = null
 )
 
+enum class ExplainTab {
+    LINE_BY_LINE,
+    VARIABLES,
+    VISUALIZERS,
+    EXECUTION_FLOW,
+    PREDICTED_OUTPUT,
+    BUGS_OPTIMIZATION,
+    ASK_AI
+}
+
+data class ExplainUiState(
+    val codeInput: String = "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1",
+    val selectedLanguage: String = "Python",
+    val explanationMode: ExplanationMode = ExplanationMode.BEGINNER,
+    val selectedLine: Int? = 1,
+    val selectedVariable: String? = null,
+    val isLoading: Boolean = false,
+    val loadingStage: String = "",
+    val explanationResult: CodeExplanationResponse? = ExplainSampleData.BINARY_SEARCH_SAMPLE,
+    val activeTab: ExplainTab = ExplainTab.LINE_BY_LINE,
+    val followUpQuestions: List<ChatMessage> = listOf(
+        ChatMessage(
+            isUser = false,
+            text = "I've analyzed your code. Ask me any question about its logic, runtime mechanics, memory usage, or alternative implementations!"
+        )
+    ),
+    val errorMessage: String? = null
+)
+
 class DebugViewModel(
     private val repository: DebugRepository = DebugRepository()
 ) : ViewModel() {
@@ -33,8 +59,12 @@ class DebugViewModel(
     private val _uiState = MutableStateFlow(DebugUiState())
     val uiState: StateFlow<DebugUiState> = _uiState.asStateFlow()
 
+    private val _explainUiState = MutableStateFlow(ExplainUiState())
+    val explainUiState: StateFlow<ExplainUiState> = _explainUiState.asStateFlow()
+
     val history = repository.history
     val currentSession = repository.currentSession
+    val currentExplanation = repository.currentExplanation
 
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
         listOf(
@@ -157,6 +187,106 @@ class DebugViewModel(
         repository.setCurrentSession(item)
         _uiState.value = _uiState.value.copy(analysisResult = item)
         onNavigate()
+    }
+
+    fun updateExplainCode(code: String) {
+        _explainUiState.value = _explainUiState.value.copy(codeInput = code)
+    }
+
+    fun updateExplainLanguage(language: String) {
+        _explainUiState.value = _explainUiState.value.copy(selectedLanguage = language)
+    }
+
+    fun setExplainMode(mode: ExplanationMode) {
+        _explainUiState.value = _explainUiState.value.copy(explanationMode = mode)
+    }
+
+    fun selectExplainLine(line: Int?) {
+        _explainUiState.value = _explainUiState.value.copy(selectedLine = line)
+    }
+
+    fun selectExplainVariable(variableName: String?) {
+        _explainUiState.value = _explainUiState.value.copy(selectedVariable = variableName)
+    }
+
+    fun setExplainTab(tab: ExplainTab) {
+        _explainUiState.value = _explainUiState.value.copy(activeTab = tab)
+    }
+
+    fun loadBinarySearchSample() {
+        _explainUiState.value = _explainUiState.value.copy(
+            codeInput = "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1",
+            selectedLanguage = "Python",
+            explanationResult = ExplainSampleData.BINARY_SEARCH_SAMPLE,
+            selectedLine = 1,
+            selectedVariable = null
+        )
+    }
+
+    fun explainCode(onSuccess: () -> Unit = {}) {
+        val state = _explainUiState.value
+        if (state.codeInput.isBlank()) {
+            _explainUiState.value = state.copy(errorMessage = "Please enter or upload code to explain.")
+            return
+        }
+
+        viewModelScope.launch {
+            _explainUiState.value = state.copy(
+                isLoading = true,
+                loadingStage = "Analyzing AST structure & symbols...",
+                errorMessage = null
+            )
+            delay(400)
+            _explainUiState.value = _explainUiState.value.copy(
+                loadingStage = "Generating line-by-line & complexity breakdown..."
+            )
+
+            try {
+                val result = repository.explainCode(
+                    code = state.codeInput,
+                    language = state.selectedLanguage,
+                    mode = state.explanationMode
+                )
+                _explainUiState.value = _explainUiState.value.copy(
+                    isLoading = false,
+                    explanationResult = result,
+                    selectedLine = result.lineExplanations.firstOrNull()?.line ?: 1
+                )
+                onSuccess()
+            } catch (e: Exception) {
+                _explainUiState.value = _explainUiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.localizedMessage ?: "Failed to explain code."
+                )
+            }
+        }
+    }
+
+    fun sendExplainQuestion(question: String) {
+        if (question.isBlank()) return
+        val current = _explainUiState.value.followUpQuestions
+        _explainUiState.value = _explainUiState.value.copy(
+            followUpQuestions = current + ChatMessage(isUser = true, text = question)
+        )
+
+        viewModelScope.launch {
+            delay(500)
+            val lang = _explainUiState.value.selectedLanguage
+            val q = question.lowercase()
+            val reply = when {
+                q.contains("time") || q.contains("space") || q.contains("complexity") ->
+                    "For this $lang algorithm, time complexity is ${_explainUiState.value.explanationResult?.complexity?.time ?: "O(n)"} because ${_explainUiState.value.explanationResult?.complexity?.timeReasoning ?: "of statement executions"}, and auxiliary space is ${_explainUiState.value.explanationResult?.complexity?.space ?: "O(1)"}."
+                q.contains("why") || q.contains("loop") || q.contains("while") ->
+                    "The loop construct maintains invariant bounds on each pass, preventing infinite repetition and guaranteeing logarithmic termination."
+                q.contains("overflow") || q.contains("bug") ->
+                    "In statically typed languages like Java or C++, calculating (low + high) can overflow if integers exceed 2^31 - 1. A safer pattern is 'low + (high - low) / 2'."
+                else ->
+                    "Great question! In $lang, this logic safely computes the result using structured control flow and minimal heap allocation."
+            }
+            _explainUiState.value = _explainUiState.value.copy(
+                followUpQuestions = _explainUiState.value.followUpQuestions + ChatMessage(isUser = false, text = reply)
+            )
+        }
     }
 
     fun deleteHistoryItem(item: DebugResponse) {

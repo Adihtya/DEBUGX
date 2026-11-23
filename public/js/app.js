@@ -17,6 +17,7 @@ class AppController {
     this.initClock();
     this.bindNavigation();
     this.bindCamera();
+    this.bindExplain();
     this.bindWorkspace();
     this.bindResults();
     this.bindChat();
@@ -73,6 +74,19 @@ class AppController {
     document.getElementById('quickActionCombined')?.addEventListener('click', () => {
       this.switchScreen('screenDebug');
       this.setWorkspaceTab('combined');
+    });
+
+    document.getElementById('quickActionExplain')?.addEventListener('click', () => {
+      this.switchScreen('screenExplain');
+      this.ensureExplainLoaded();
+    });
+
+    document.getElementById('explainBackBtn')?.addEventListener('click', () => {
+      this.switchScreen('screenHome');
+    });
+
+    document.getElementById('explainQuickSampleBtn')?.addEventListener('click', () => {
+      this.loadExplainPreset('binary_search');
     });
 
     document.getElementById('viewAllHistoryLink')?.addEventListener('click', () => {
@@ -1213,6 +1227,679 @@ class AppController {
       frame?.classList.remove('frame-mobile');
       frame?.classList.add('frame-responsive');
     });
+  }
+
+  // =========================================================================
+  // FEATURE 3: EXPLAIN MY CODE — CONTROLLER & INTERACTION ENGINE
+  // =========================================================================
+  bindExplain() {
+    this.currentExplainMode = 'beginner';
+    this.currentExplainData = null;
+    this.isInteractiveOverlay = false;
+    this.selectedExplainLine = 1;
+    this.selectedExplainVariable = null;
+
+    const textarea = document.getElementById('explainCodeTextarea');
+    const gutter = document.getElementById('explainEditorGutter');
+    const langSelect = document.getElementById('explainLangSelect');
+    const presetSelect = document.getElementById('explainPresetSelect');
+    const uploadTrigger = document.getElementById('explainUploadTriggerBtn');
+    const fileInput = document.getElementById('explainFileInput');
+    const clearBtn = document.getElementById('explainClearCodeBtn');
+    const toggleViewBtn = document.getElementById('explainToggleEditViewBtn');
+    const runBtn = document.getElementById('runExplainBtn');
+
+    // Gutter update on typing
+    textarea?.addEventListener('input', () => {
+      this.updateExplainLineNumbers();
+      this.autoDetectLanguage(textarea.value);
+    });
+
+    textarea?.addEventListener('scroll', () => {
+      if (gutter) gutter.scrollTop = textarea.scrollTop;
+    });
+
+    // Initial line numbers
+    this.updateExplainLineNumbers();
+
+    // Mode Toggle
+    const modePills = document.querySelectorAll('.explain-mode-pill');
+    modePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        modePills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        this.currentExplainMode = pill.getAttribute('data-mode') || 'beginner';
+        if (this.currentExplainData) {
+          this.executeExplainCode();
+        }
+      });
+    });
+
+    // Language Select
+    langSelect?.addEventListener('change', () => {
+      const tag = document.getElementById('explainDetectedLangTag');
+      if (tag) tag.textContent = langSelect.options[langSelect.selectedIndex].text;
+    });
+
+    // Presets Select
+    presetSelect?.addEventListener('change', () => {
+      const val = presetSelect.value;
+      if (val) this.loadExplainPreset(val);
+    });
+
+    // File Upload
+    uploadTrigger?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result;
+        if (textarea) textarea.value = text;
+        this.updateExplainLineNumbers();
+        
+        // Infer language from extension
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const extMap = {
+          py: 'python', js: 'javascript', ts: 'typescript', kt: 'kotlin',
+          java: 'java', cpp: 'cpp', c: 'cpp', go: 'go', rs: 'rust', cs: 'csharp'
+        };
+        if (extMap[ext] && langSelect) {
+          langSelect.value = extMap[ext];
+          const tag = document.getElementById('explainDetectedLangTag');
+          if (tag) tag.textContent = langSelect.options[langSelect.selectedIndex].text;
+        } else {
+          this.autoDetectLanguage(text);
+        }
+
+        const label = document.getElementById('explainEditorLabel');
+        if (label) label.textContent = file.name;
+
+        this.showToast(`Loaded ${file.name}`, 'success');
+        this.executeExplainCode(file.name);
+      };
+      reader.readAsText(file);
+    });
+
+    // Clear Code
+    clearBtn?.addEventListener('click', () => {
+      if (textarea) textarea.value = '';
+      this.updateExplainLineNumbers();
+      this.currentExplainData = null;
+      this.showToast('Code cleared', 'info');
+    });
+
+    // Toggle Edit Mode vs Interactive View
+    toggleViewBtn?.addEventListener('click', () => {
+      this.toggleExplainInteractiveView();
+    });
+
+    // Run Explain Button
+    runBtn?.addEventListener('click', () => {
+      this.executeExplainCode();
+    });
+
+    // Right Pane Subtabs Switching
+    const subtabs = document.querySelectorAll('#explainSubTabs .subtab-btn');
+    subtabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        subtabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const targetTab = btn.getAttribute('data-tab');
+        const panels = document.querySelectorAll('.explain-tab-panel');
+        panels.forEach(p => p.classList.remove('active'));
+        const activePanel = document.getElementById(targetTab);
+        if (activePanel) activePanel.classList.add('active');
+      });
+    });
+
+    // Ask AI Follow-Up Form
+    const askForm = document.getElementById('explainAskAiForm');
+    const askInput = document.getElementById('explainAskAiInput');
+    askForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = askInput?.value?.trim();
+      if (q) {
+        this.sendExplainAskAi(q);
+        if (askInput) askInput.value = '';
+      }
+    });
+
+    // Quick Question Chips
+    const quickChips = document.querySelectorAll('.explain-quick-questions .quick-chip');
+    quickChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.getAttribute('data-q');
+        if (q) this.sendExplainAskAi(q);
+      });
+    });
+
+    // Auto-run default sample explanation on startup
+    setTimeout(() => {
+      if (textarea && textarea.value) {
+        this.executeExplainCode();
+      }
+    }, 400);
+  }
+
+  updateExplainLineNumbers() {
+    const textarea = document.getElementById('explainCodeTextarea');
+    const gutter = document.getElementById('explainEditorGutter');
+    if (!textarea || !gutter) return;
+
+    const lines = (textarea.value || '').split('\n').length;
+    let gutterHtml = '';
+    for (let i = 1; i <= Math.max(lines, 1); i++) {
+      gutterHtml += `<div>${i}</div>`;
+    }
+    gutter.innerHTML = gutterHtml;
+  }
+
+  autoDetectLanguage(code) {
+    if (!code) return;
+    const langSelect = document.getElementById('explainLangSelect');
+    const tag = document.getElementById('explainDetectedLangTag');
+    if (langSelect && langSelect.value !== 'auto') {
+      if (tag) tag.textContent = langSelect.options[langSelect.selectedIndex].text;
+      return;
+    }
+
+    const t = code.toLowerCase();
+    let detected = 'Python';
+    if (t.includes('fun ') || t.includes('val ') || t.includes('var ') && t.includes(': string')) detected = 'Kotlin';
+    else if (t.includes('function') || t.includes('const ') || t.includes('console.log') || t.includes('=>')) detected = 'JavaScript';
+    else if (t.includes('public class') || t.includes('system.out.println')) detected = 'Java';
+    else if (t.includes('#include') || t.includes('std::cout')) detected = 'C++';
+    else if (t.includes('package main') || t.includes('func ')) detected = 'Go';
+    else if (t.includes('fn main') || t.includes('let mut')) detected = 'Rust';
+    else if (t.includes('def ') || t.includes('print(') || t.includes('elif ')) detected = 'Python';
+
+    if (tag) tag.textContent = detected;
+  }
+
+  ensureExplainLoaded() {
+    const textarea = document.getElementById('explainCodeTextarea');
+    if (!this.currentExplainData && textarea && textarea.value) {
+      this.executeExplainCode();
+    }
+  }
+
+  loadExplainPreset(presetKey) {
+    const textarea = document.getElementById('explainCodeTextarea');
+    const langSelect = document.getElementById('explainLangSelect');
+    const tag = document.getElementById('explainDetectedLangTag');
+
+    const presets = {
+      binary_search: {
+        lang: 'python',
+        display: 'Python',
+        code: `def binary_search(arr, target):
+    low, high = 0, len(arr) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return -1`
+      },
+      fibonacci: {
+        lang: 'javascript',
+        display: 'JavaScript',
+        code: `function fib(n, memo = {}) {
+  if (n in memo) return memo[n];
+  if (n <= 1) return n;
+  memo[n] = fib(n - 1, memo) + fib(n - 2, memo);
+  return memo[n];
+}`
+      },
+      palindrome: {
+        lang: 'kotlin',
+        display: 'Kotlin',
+        code: `fun isPalindrome(s: String): Boolean {
+    var left = 0
+    var right = s.length - 1
+    while (left < right) {
+        if (s[left] != s[right]) return false
+        left++
+        right--
+    }
+    return true
+}`
+      },
+      twosum: {
+        lang: 'cpp',
+        display: 'C++',
+        code: `#include <vector>
+#include <unordered_map>
+
+std::vector<int> twoSum(std::vector<int>& nums, int target) {
+    std::unordered_map<int, int> seen;
+    for (int i = 0; i < nums.size(); ++i) {
+        int complement = target - nums[i];
+        if (seen.find(complement) != seen.end()) {
+            return {seen[complement], i};
+        }
+        seen[nums[i]] = i;
+    }
+    return {};
+}`
+      }
+    };
+
+    const preset = presets[presetKey] || presets.binary_search;
+    if (textarea) textarea.value = preset.code;
+    if (langSelect) langSelect.value = preset.lang;
+    if (tag) tag.textContent = preset.display;
+
+    this.updateExplainLineNumbers();
+    this.executeExplainCode();
+    this.showToast(`Loaded ${preset.display} preset`, 'success');
+  }
+
+  toggleExplainInteractiveView() {
+    const textarea = document.getElementById('explainCodeTextarea');
+    const overlay = document.getElementById('explainInteractiveOverlay');
+    const btnText = document.getElementById('explainEditBtnText');
+
+    this.isInteractiveOverlay = !this.isInteractiveOverlay;
+
+    if (this.isInteractiveOverlay) {
+      if (textarea) textarea.style.display = 'none';
+      if (overlay) overlay.style.display = 'block';
+      if (btnText) btnText.textContent = 'Edit Code';
+      this.renderInteractiveLines();
+    } else {
+      if (textarea) textarea.style.display = 'block';
+      if (overlay) overlay.style.display = 'none';
+      if (btnText) btnText.textContent = 'Interactive View';
+    }
+  }
+
+  renderInteractiveLines() {
+    const textarea = document.getElementById('explainCodeTextarea');
+    const overlay = document.getElementById('explainInteractiveOverlay');
+    if (!textarea || !overlay) return;
+
+    const lines = (textarea.value || '').split('\n');
+    let html = '';
+
+    lines.forEach((lineText, idx) => {
+      const lineNum = idx + 1;
+      const isSelected = this.selectedExplainLine === lineNum;
+      const hasVariable = this.selectedExplainVariable && lineText.includes(this.selectedExplainVariable);
+
+      let classes = ['code-line-row'];
+      if (isSelected) classes.push('selected');
+      if (hasVariable) classes.push('has-variable');
+
+      let highlighted = this.escapeHtml(lineText);
+      if (this.selectedExplainVariable) {
+        const escapedVar = this.escapeHtml(this.selectedExplainVariable);
+        const re = new RegExp(`\\b(${escapedVar})\\b`, 'g');
+        highlighted = highlighted.replace(re, `<span class="var-token">$1</span>`);
+      }
+
+      html += `<div class="${classes.join(' ')}" data-line="${lineNum}">` +
+        `<span style="color: #64748b; width: 28px; display: inline-block; user-select: none;">${lineNum}</span> ` +
+        `<span>${highlighted || '&nbsp;'}</span>` +
+        `</div>`;
+    });
+
+    overlay.innerHTML = html;
+
+    // Attach click handlers to lines
+    overlay.querySelectorAll('.code-line-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const line = parseInt(row.getAttribute('data-line') || '1', 10);
+        this.selectExplainLine(line);
+      });
+    });
+  }
+
+  selectExplainLine(lineNum) {
+    this.selectedExplainLine = lineNum;
+
+    // Update overlay active row
+    const overlay = document.getElementById('explainInteractiveOverlay');
+    if (overlay) {
+      overlay.querySelectorAll('.code-line-row').forEach(r => {
+        if (parseInt(r.getAttribute('data-line') || '0', 10) === lineNum) {
+          r.classList.add('selected');
+        } else {
+          r.classList.remove('selected');
+        }
+      });
+    }
+
+    // Switch right pane to Line-by-Line tab and highlight/scroll to card
+    const subtabs = document.querySelectorAll('#explainSubTabs .subtab-btn');
+    subtabs.forEach(b => {
+      if (b.getAttribute('data-tab') === 'tabLineByLine') b.classList.add('active');
+      else b.classList.remove('active');
+    });
+
+    const panels = document.querySelectorAll('.explain-tab-panel');
+    panels.forEach(p => p.classList.remove('active'));
+    document.getElementById('tabLineByLine')?.classList.add('active');
+
+    const cards = document.querySelectorAll('.line-card');
+    cards.forEach(card => {
+      if (parseInt(card.getAttribute('data-line') || '0', 10) === lineNum) {
+        card.classList.add('active');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        card.classList.remove('active');
+      }
+    });
+  }
+
+  selectExplainVariable(varName) {
+    if (this.selectedExplainVariable === varName) {
+      this.selectedExplainVariable = null;
+    } else {
+      this.selectedExplainVariable = varName;
+    }
+
+    // Re-render interactive lines
+    if (this.isInteractiveOverlay) {
+      this.renderInteractiveLines();
+    }
+
+    // Highlight variable card
+    const cards = document.querySelectorAll('.variable-card');
+    cards.forEach(card => {
+      if (card.getAttribute('data-var') === this.selectedExplainVariable) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+  }
+
+  async executeExplainCode(fileName = '') {
+    const textarea = document.getElementById('explainCodeTextarea');
+    const runBtn = document.getElementById('runExplainBtn');
+    const langSelect = document.getElementById('explainLangSelect');
+
+    const code = textarea?.value?.trim();
+    if (!code) {
+      this.showToast('Please enter or upload code to explain.', 'warning');
+      return;
+    }
+
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.innerHTML = `<span class="loading-spinner"></span> <span>Analyzing code with Gemini...</span>`;
+    }
+
+    try {
+      const language = langSelect?.value || 'auto';
+      const result = await window.geminiService.explainCode({
+        code,
+        language,
+        mode: this.currentExplainMode,
+        fileName
+      });
+
+      this.currentExplainData = result;
+      this.renderExplainResult(result);
+      this.showToast('Code explained successfully!', 'success');
+    } catch (err) {
+      console.error("Explain error:", err);
+      this.showToast(err.message || 'Failed to explain code', 'error');
+    } finally {
+      if (runBtn) {
+        runBtn.disabled = false;
+        runBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> <span>Explain My Code</span>`;
+      }
+    }
+  }
+
+  renderExplainResult(data) {
+    // 1. Complexity Badges
+    const timeBadge = document.getElementById('badgeTimeComplexity');
+    const spaceBadge = document.getElementById('badgeSpaceComplexity');
+    const detailTimeVal = document.getElementById('detailTimeVal');
+    const detailTimeReasoning = document.getElementById('detailTimeReasoning');
+    const detailSpaceVal = document.getElementById('detailSpaceVal');
+    const detailSpaceReasoning = document.getElementById('detailSpaceReasoning');
+
+    if (timeBadge) timeBadge.textContent = `Time: ${data.complexity?.time || 'O(n)'}`;
+    if (spaceBadge) spaceBadge.textContent = `Space: ${data.complexity?.space || 'O(1)'}`;
+    if (detailTimeVal) detailTimeVal.textContent = data.complexity?.time || 'O(n)';
+    if (detailTimeReasoning) detailTimeReasoning.textContent = data.complexity?.time_reasoning || 'Linear traversal.';
+    if (detailSpaceVal) detailSpaceVal.textContent = data.complexity?.space || 'O(1)';
+    if (detailSpaceReasoning) detailSpaceReasoning.textContent = data.complexity?.space_reasoning || 'Constant memory.';
+
+    // 2. Line-by-Line Cards
+    const lineCardsList = document.getElementById('explainLineCardsList');
+    if (lineCardsList) {
+      let html = '';
+      (data.line_explanations || []).forEach(item => {
+        const isSelected = item.line === this.selectedExplainLine;
+        html += `
+          <div class="line-card ${isSelected ? 'active' : ''}" data-line="${item.line}">
+            <div class="line-card-header">
+              <span class="line-pill">Line ${item.line}</span>
+              <span class="line-role">${this.escapeHtml(item.role || 'Statement')}</span>
+            </div>
+            <div class="line-code-snippet">${this.escapeHtml(item.code || '')}</div>
+            <p class="line-explanation-text">${this.escapeHtml(item.explanation || '')}</p>
+            ${item.beginner_analogy ? `
+              <div class="beginner-analogy-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                <span>${this.escapeHtml(item.beginner_analogy)}</span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      lineCardsList.innerHTML = html;
+
+      // Attach click handlers to line cards
+      lineCardsList.querySelectorAll('.line-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const l = parseInt(card.getAttribute('data-line') || '1', 10);
+          this.selectExplainLine(l);
+        });
+      });
+    }
+
+    // 3. Variables & Scope
+    const varGrid = document.getElementById('explainVariablesGrid');
+    if (varGrid) {
+      let html = '';
+      (data.variables || []).forEach(v => {
+        html += `
+          <div class="variable-card" data-var="${this.escapeHtml(v.name)}">
+            <div class="variable-card-top">
+              <span class="var-name">${this.escapeHtml(v.name)}</span>
+              <div class="var-badges">
+                <span class="var-badge">${this.escapeHtml(v.type || 'Inferred')}</span>
+                <span class="var-badge">${this.escapeHtml(v.scope || 'Local')}</span>
+              </div>
+            </div>
+            <p class="var-desc">${this.escapeHtml(v.purpose || '')}</p>
+            <div class="var-lines">Declared at line ${v.declared_line || 1}${v.used_lines?.length ? ` • Used on lines: ${v.used_lines.join(', ')}` : ''}</div>
+          </div>
+        `;
+      });
+      varGrid.innerHTML = html;
+
+      varGrid.querySelectorAll('.variable-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const name = card.getAttribute('data-var');
+          if (name) this.selectExplainVariable(name);
+        });
+      });
+    }
+
+    // 4. Visualizers (Loop & Function)
+    const loopTableWrapper = document.getElementById('loopTraceTableWrapper');
+    const loopBadge = document.getElementById('loopIterationBadge');
+    if (loopTableWrapper) {
+      const iters = data.loop_visualizer || [];
+      if (loopBadge) loopBadge.textContent = `${iters.length} Iterations`;
+
+      if (!iters.length) {
+        loopTableWrapper.innerHTML = `<p style="font-size: 0.74rem; color: #64748b; margin: 4px 0;">No iterative loops detected in this code snippet.</p>`;
+      } else {
+        const keys = Object.keys(iters[0]?.variables_state || {});
+        let ths = `<th>Iter</th>`;
+        keys.forEach(k => ths += `<th>${this.escapeHtml(k)}</th>`);
+        ths += `<th>Explanation</th>`;
+
+        let rows = '';
+        iters.forEach(it => {
+          let tds = `<td>#${it.iteration}</td>`;
+          keys.forEach(k => {
+            tds += `<td>${this.escapeHtml(it.variables_state?.[k] || '-')}</td>`;
+          });
+          tds += `<td>${this.escapeHtml(it.explanation || '')}</td>`;
+          rows += `<tr>${tds}</tr>`;
+        });
+
+        loopTableWrapper.innerHTML = `
+          <table class="loop-trace-table">
+            <thead><tr>${ths}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }
+    }
+
+    const funcFramesList = document.getElementById('functionFramesList');
+    if (funcFramesList) {
+      let html = '';
+      (data.function_visualizer || []).forEach(f => {
+        html += `
+          <div class="function-frame-item">
+            <div class="function-frame-top">
+              <span>Frame #${f.frame}: ${this.escapeHtml(f.function_name)}()</span>
+              <span style="color: #22c55e;">${this.escapeHtml(f.status || 'Active')}</span>
+            </div>
+            <div class="function-frame-args">Args: ${this.escapeHtml(JSON.stringify(f.arguments || {}))}</div>
+            <div class="function-frame-ret">Return: ${this.escapeHtml(f.return_value || 'void')}</div>
+          </div>
+        `;
+      });
+      funcFramesList.innerHTML = html || `<p style="font-size: 0.74rem; color: #64748b;">No call stack transitions to display.</p>`;
+    }
+
+    // 5. Control Structures
+    const structuresList = document.getElementById('explainStructuresList');
+    if (structuresList) {
+      let html = '';
+      (data.control_structures || []).forEach(cs => {
+        html += `
+          <div class="structure-item">
+            <div class="structure-title-row">
+              <span class="structure-type">${this.escapeHtml(cs.type)} (Lines ${this.escapeHtml(cs.line_range)})</span>
+              <span style="font-size: 0.7rem; color: #94a3b8;">${this.escapeHtml(cs.condition || 'Sequential')}</span>
+            </div>
+            <p style="font-size: 0.76rem; color: #f1f5f9; margin: 4px 0;">${this.escapeHtml(cs.explanation || '')}</p>
+            <div style="font-size: 0.7rem; color: #64748b;">Termination: ${this.escapeHtml(cs.termination || 'Block completion')}</div>
+          </div>
+        `;
+      });
+      structuresList.innerHTML = html || `<p style="font-size: 0.74rem; color: #64748b;">Sequential execution block.</p>`;
+    }
+
+    // 6. Bugs & Improvements
+    const bugsList = document.getElementById('explainBugsList');
+    if (bugsList) {
+      let html = '';
+      (data.bugs_and_improvements || []).forEach(b => {
+        html += `
+          <div class="bug-item">
+            <div class="bug-title-row">
+              <span class="bug-type">${this.escapeHtml(b.type)} (Line ${b.line || 1})</span>
+              <span style="font-size: 0.68rem; color: #f59e0b; font-weight: 700;">${this.escapeHtml(b.severity || 'Notice')}</span>
+            </div>
+            <p style="font-size: 0.76rem; color: #f1f5f9; margin: 4px 0;">${this.escapeHtml(b.issue || '')}</p>
+            ${b.fix ? `<div class="bug-fix-box">Fix: ${this.escapeHtml(b.fix)}</div>` : ''}
+          </div>
+        `;
+      });
+      bugsList.innerHTML = html || `<p style="font-size: 0.74rem; color: #22c55e;">No major bugs or vulnerabilities detected.</p>`;
+    }
+
+    // 7. Execution Flow Stepper
+    const flowStepper = document.getElementById('executionFlowStepper');
+    if (flowStepper) {
+      let html = '';
+      (data.execution_flow || []).forEach(step => {
+        html += `
+          <div class="flow-step-item">
+            <div class="flow-step-num">${step.step}</div>
+            <div class="flow-step-text">
+              <strong style="color: #c084fc;">Line ${step.line}:</strong> ${this.escapeHtml(step.description)}
+            </div>
+          </div>
+        `;
+      });
+      flowStepper.innerHTML = html;
+    }
+
+    // 8. Predicted Output & Disclaimer
+    const consoleOutput = document.getElementById('predictedConsoleOutput');
+    const reasoningText = document.getElementById('predictedReasoningText');
+    const noticeBox = document.getElementById('predictionNoticeBox');
+
+    if (consoleOutput) {
+      consoleOutput.innerHTML = `<span class="console-cursor">></span> ${this.escapeHtml(data.predicted_output?.output_text || 'Completed execution.')}`;
+    }
+    if (reasoningText) {
+      reasoningText.textContent = data.predicted_output?.reasoning || 'Statically analyzed.';
+    }
+    if (noticeBox) {
+      noticeBox.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>${this.escapeHtml(data.predicted_output?.execution_notice || 'Statically predicted via AST simulation. Not run in a live sandboxed runtime.')}</span>
+      `;
+    }
+  }
+
+  async sendExplainAskAi(question) {
+    const thread = document.getElementById('explainAskAiThread');
+    if (!thread) return;
+
+    // User message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'ask-ai-msg user';
+    userMsg.innerHTML = `<div class="msg-bubble">${this.escapeHtml(question)}</div>`;
+    thread.appendChild(userMsg);
+    thread.scrollTop = thread.scrollHeight;
+
+    // Bot typing placeholder
+    const botMsg = document.createElement('div');
+    botMsg.className = 'ask-ai-msg bot';
+    botMsg.innerHTML = `<div class="bot-avatar">AI</div><div class="msg-bubble"><span class="typing-dots">Thinking...</span></div>`;
+    thread.appendChild(botMsg);
+    thread.scrollTop = thread.scrollHeight;
+
+    try {
+      const textarea = document.getElementById('explainCodeTextarea');
+      const code = textarea?.value || '';
+      const reply = await window.geminiService.askExplainFollowUp({
+        code,
+        context: this.currentExplainData,
+        question
+      });
+
+      botMsg.querySelector('.msg-bubble').innerHTML = this.escapeHtml(reply).replace(/\n/g, '<br>');
+    } catch (e) {
+      botMsg.querySelector('.msg-bubble').textContent = "I'm having trouble analyzing this right now. Please try again.";
+    }
+    thread.scrollTop = thread.scrollHeight;
   }
 
   // --- Toast Notifications ---

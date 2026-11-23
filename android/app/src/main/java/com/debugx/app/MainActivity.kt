@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.History
@@ -63,7 +64,14 @@ fun MainAppScreen(viewModel: DebugViewModel) {
                     viewModel = viewModel,
                     onNavigateToDebug = { navController.navigate(Screen.Debug.route) },
                     onNavigateToResults = { navController.navigate(Screen.Results.route) },
-                    onNavigateToCamera = { navController.navigate(Screen.Camera.route) }
+                    onNavigateToCamera = { navController.navigate(Screen.Camera.route) },
+                    onNavigateToExplain = { navController.navigate(Screen.Explain.route) }
+                )
+            }
+            composable(Screen.Explain.route) {
+                ExplainCodeScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Debug.route) {
@@ -121,8 +129,8 @@ fun BottomNavigationBar(navController: NavHostController) {
     val navItems = listOf(
         Screen.Home to Icons.Default.Home,
         Screen.Debug to Icons.Default.BugReport,
+        Screen.Explain to Icons.Default.AutoStories,
         Screen.History to Icons.Default.History,
-        Screen.Learn to Icons.Default.Book,
         Screen.Profile to Icons.Default.Person
     )
 

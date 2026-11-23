@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Code
@@ -36,7 +37,8 @@ fun HomeScreen(
     viewModel: DebugViewModel,
     onNavigateToDebug: () -> Unit,
     onNavigateToResults: () -> Unit,
-    onNavigateToCamera: () -> Unit = {}
+    onNavigateToCamera: () -> Unit = {},
+    onNavigateToExplain: () -> Unit = {}
 ) {
     val history by viewModel.history.collectAsState()
 
@@ -143,6 +145,75 @@ fun HomeScreen(
                             Text("Try Sample Bug", color = TextPrimary)
                         }
                     }
+                }
+            }
+        }
+
+        // Explain My Code Feature Banner
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BgSecondary),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x557957FF)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToExplain() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x337957FF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.AutoStories,
+                            contentDescription = null,
+                            tint = Color(0xFF7957FF),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "FEATURE: Explain My Code",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF7957FF)
+                            ) {
+                                Text(
+                                    "NEW",
+                                    color = Color.White,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            "Interactive line-by-line analysis, loop/function visualizers & complexity",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+
+                    Icon(
+                        Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = Color(0xFF7957FF),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

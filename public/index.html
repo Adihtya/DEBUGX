@@ -153,6 +153,15 @@
               <p class="action-desc">Live camera capture of monitor or laptop screen</p>
             </div>
 
+            <div class="action-card action-card-explain" id="quickActionExplain">
+              <div class="featured-tag">New Feature</div>
+              <div class="action-icon icon-explain">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+              </div>
+              <h4 class="action-title">Explain My Code</h4>
+              <p class="action-desc">Interactive line-by-line, loop visualizers & complexity</p>
+            </div>
+
             <div class="action-card action-card-featured" id="quickActionCombined">
               <div class="featured-tag">Recommended</div>
               <div class="action-icon icon-gradient">
@@ -640,6 +649,330 @@ else:
 
 
         <!-- ==============================================
+             SCREEN 3B: EXPLAIN MY CODE (FEATURE 3)
+             ============================================== -->
+        <section id="screenExplain" class="app-screen">
+          <!-- Top Bar -->
+          <div class="screen-header">
+            <button class="btn-icon-subtle" id="explainBackBtn" title="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="header-titles text-center">
+              <span class="header-subtitle">Interactive AI Code Explainer</span>
+              <h2 class="header-greeting" style="font-size: 1.15rem; margin: 0;">Explain My Code</h2>
+            </div>
+            <div class="header-actions">
+              <button class="header-pill-btn" id="explainQuickSampleBtn" title="Load Binary Search Sample">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Sample</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Controls Toolbar: Language, Mode, Upload, Presets -->
+          <div class="explain-toolbar">
+            <div class="explain-toolbar-left">
+              <!-- Mode Toggle -->
+              <div class="explain-mode-toggle" id="explainModeToggle">
+                <button class="explain-mode-pill active" data-mode="beginner">
+                  🌱 Beginner Mode
+                </button>
+                <button class="explain-mode-pill" data-mode="advanced">
+                  ⚡ Advanced Mode
+                </button>
+              </div>
+
+              <!-- Language Select -->
+              <div class="select-wrapper">
+                <select id="explainLangSelect" class="explain-select" title="Programming Language">
+                  <option value="auto">Auto-Detect Language</option>
+                  <option value="python" selected>Python</option>
+                  <option value="javascript">JavaScript</option>
+                  <option value="typescript">TypeScript</option>
+                  <option value="kotlin">Kotlin</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                  <option value="go">Go</option>
+                  <option value="rust">Rust</option>
+                  <option value="csharp">C#</option>
+                  <option value="php">PHP</option>
+                  <option value="ruby">Ruby</option>
+                </select>
+              </div>
+
+              <!-- Presets Dropdown -->
+              <div class="select-wrapper">
+                <select id="explainPresetSelect" class="explain-select" title="Preset Code Samples">
+                  <option value="" disabled selected>Preset Code Samples...</option>
+                  <option value="binary_search">Binary Search (Python)</option>
+                  <option value="fibonacci">Recursive Fibonacci with Memoization (JavaScript)</option>
+                  <option value="palindrome">Two-Pointer Palindrome (Kotlin)</option>
+                  <option value="twosum">Two-Sum Hash Map (C++)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="explain-toolbar-right">
+              <!-- File Upload Input (Hidden) & Trigger -->
+              <input type="file" id="explainFileInput" accept=".py,.js,.ts,.java,.kt,.cpp,.c,.go,.rs,.cs,.php,.rb,.html,.css,.json,.txt" style="display: none;">
+              <button class="btn-subtle" id="explainUploadTriggerBtn" title="Upload Code File">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Upload File</span>
+              </button>
+
+              <button class="btn-subtle" id="explainClearCodeBtn" title="Clear Code">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Split Screen Container -->
+          <div class="explain-split-layout">
+            
+            <!-- Left Pane: Interactive Code Editor -->
+            <div class="explain-pane explain-pane-editor">
+              <div class="pane-header">
+                <div class="pane-title-group">
+                  <div class="status-indicator-dot"></div>
+                  <span class="pane-title" id="explainEditorLabel">Interactive Source Code</span>
+                  <span class="pane-tag" id="explainDetectedLangTag">Python</span>
+                </div>
+                <div class="pane-actions">
+                  <button class="pane-action-btn" id="explainToggleEditViewBtn" title="Toggle Edit/View Mode">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span id="explainEditBtnText">Interactive View</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Code Editor Wrapper -->
+              <div class="editor-unified-wrapper" id="explainEditorUnifiedWrapper">
+                <!-- Line Numbers Gutter -->
+                <div class="editor-gutter" id="explainEditorGutter"></div>
+                
+                <!-- Code Textarea (for typing/pasting) -->
+                <textarea id="explainCodeTextarea" class="editor-textarea" spellcheck="false" placeholder="// Paste code here or upload a file to explain...">def binary_search(arr, target):
+    low, high = 0, len(arr) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return -1</textarea>
+                
+                <!-- Interactive Line-by-Line Clickable Overlay -->
+                <div id="explainInteractiveOverlay" class="editor-interactive-overlay" style="display: none;"></div>
+              </div>
+
+              <!-- Explain Action Button -->
+              <div class="explain-action-footer">
+                <button class="btn-primary btn-run-explain" id="runExplainBtn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span>Explain My Code</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Right Pane: AI-Generated Explanations -->
+            <div class="explain-pane explain-pane-results">
+              <div class="pane-header">
+                <div class="pane-title-group">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+                  <span class="pane-title">AI Analysis & Visualizers</span>
+                </div>
+                <div class="pane-header-badges" id="explainComplexityHeaderBadges">
+                  <span class="badge-complexity time" id="badgeTimeComplexity">Time: O(log n)</span>
+                  <span class="badge-complexity space" id="badgeSpaceComplexity">Space: O(1)</span>
+                </div>
+              </div>
+
+              <!-- Navigation Tabs for Right Pane -->
+              <div class="explain-subtabs" id="explainSubTabs">
+                <button class="subtab-btn active" data-tab="tabLineByLine">Line-by-Line</button>
+                <button class="subtab-btn" data-tab="tabVariables">Variables & Scope</button>
+                <button class="subtab-btn" data-tab="tabVisualizers">Visualizers</button>
+                <button class="subtab-btn" data-tab="tabStructures">Control Flow</button>
+                <button class="subtab-btn" data-tab="tabBugs">Bugs & Tweaks</button>
+                <button class="subtab-btn" data-tab="tabAskAI">Ask AI</button>
+              </div>
+
+              <!-- Subtab Panels Container -->
+              <div class="explain-tab-content-container">
+                
+                <!-- TAB 1: Line-by-Line Explanations -->
+                <div id="tabLineByLine" class="explain-tab-panel active">
+                  <div class="explain-section-intro">
+                    <p class="section-hint">💡 <strong>Interactive sync:</strong> Click any line below or in the editor on the left to highlight its exact execution context.</p>
+                  </div>
+                  <div class="line-cards-list" id="explainLineCardsList">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- TAB 2: Variables & Data Types -->
+                <div id="tabVariables" class="explain-tab-panel">
+                  <div class="explain-section-intro">
+                    <p class="section-hint">🔍 <strong>Variable tracker:</strong> Click any variable identifier to locate all its declarations and usage references across lines.</p>
+                  </div>
+                  <div class="variables-grid" id="explainVariablesGrid">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- TAB 3: Visualizers (Loop & Function) -->
+                <div id="tabVisualizers" class="explain-tab-panel">
+                  <!-- Loop Visualizer -->
+                  <div class="visualizer-card">
+                    <div class="visualizer-header">
+                      <div class="visualizer-title-row">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        <h4 class="visualizer-title">Loop Iteration Visualizer</h4>
+                      </div>
+                      <span class="visualizer-badge" id="loopIterationBadge">3 Iterations</span>
+                    </div>
+                    <p class="visualizer-desc">Step-by-step state changes during each loop cycle</p>
+                    <div class="loop-trace-table-wrapper" id="loopTraceTableWrapper">
+                      <!-- Loop table populated dynamically -->
+                    </div>
+                  </div>
+
+                  <!-- Function Visualizer -->
+                  <div class="visualizer-card">
+                    <div class="visualizer-header">
+                      <div class="visualizer-title-row">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="8" x="3" y="3" rx="2"/><rect width="8" height="8" x="13" y="13" rx="2"/><path d="M14 6h3a2 2 0 0 1 2 2v3"/><path d="M10 18H7a2 2 0 0 1-2-2v-3"/></svg>
+                        <h4 class="visualizer-title">Function Call Hierarchy & Stack Frames</h4>
+                      </div>
+                    </div>
+                    <p class="visualizer-desc">Active execution stack frames, parameters passed, and return values</p>
+                    <div class="function-frames-list" id="functionFramesList">
+                      <!-- Populated dynamically -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 4: Control Structures & Conditions -->
+                <div id="tabStructures" class="explain-tab-panel">
+                  <div class="structures-list" id="explainStructuresList">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- TAB 5: Potential Bugs & Improvements -->
+                <div id="tabBugs" class="explain-tab-panel">
+                  <div class="bugs-suggestions-list" id="explainBugsList">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- TAB 6: Ask AI Follow-Up -->
+                <div id="tabAskAI" class="explain-tab-panel">
+                  <div class="ask-ai-thread" id="explainAskAiThread">
+                    <div class="ask-ai-msg bot">
+                      <div class="bot-avatar">AI</div>
+                      <div class="msg-bubble">
+                        I've analyzed your code structure! Ask me anything about how it works, how to optimize it, or how it behaves with edge cases.
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Quick question chips -->
+                  <div class="explain-quick-questions">
+                    <button class="quick-chip" data-q="What is the time complexity and why?">⏱️ Time Complexity</button>
+                    <button class="quick-chip" data-q="Is there an integer overflow or edge case hazard?">⚠️ Edge Cases</button>
+                    <button class="quick-chip" data-q="Can this be rewritten iteratively or with less memory?">⚡ Optimization</button>
+                  </div>
+
+                  <!-- Input form -->
+                  <form id="explainAskAiForm" class="ask-ai-input-row">
+                    <input type="text" id="explainAskAiInput" class="ask-ai-input" placeholder="Ask a question about this code..." autocomplete="off">
+                    <button type="submit" class="ask-ai-send-btn" id="explainAskAiSendBtn" title="Send">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                  </form>
+                </div>
+
+              </div>
+            </div>
+
+          </div><!-- /.explain-split-layout -->
+
+          <!-- Bottom Pane: Execution Flow Timeline, Predicted Output & Complexity -->
+          <div class="explain-bottom-section">
+            <div class="bottom-section-grid">
+              
+              <!-- Execution Flow Timeline -->
+              <div class="bottom-card bottom-card-flow">
+                <div class="bottom-card-header">
+                  <div class="bottom-card-title-row">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    <h4>Step-by-Step Execution Sequence</h4>
+                  </div>
+                </div>
+                <div class="execution-flow-stepper" id="executionFlowStepper">
+                  <!-- Stepper populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Output Prediction Card (With Honesty Disclaimer) -->
+              <div class="bottom-card bottom-card-output">
+                <div class="bottom-card-header">
+                  <div class="bottom-card-title-row">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="14" x="3" y="5" rx="2"/><polyline points="8 10 12 14 16 10"/></svg>
+                    <h4>Predicted Output</h4>
+                  </div>
+                  <!-- Mandatory Honesty Badge -->
+                  <span class="badge-static-prediction" title="Static AI Prediction">Statically Inferred</span>
+                </div>
+                
+                <!-- Notice -->
+                <div class="prediction-disclaimer-box" id="predictionNoticeBox">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span><strong>AI Prediction:</strong> Output is deduced through AST static trace. Not run in a live sandboxed runtime.</span>
+                </div>
+
+                <!-- Console Output -->
+                <div class="predicted-console" id="predictedConsoleOutput">
+                  <span class="console-cursor">></span> binary_search([2, 5, 8, 15, 23, 30, 45], 23) => 4
+                </div>
+                
+                <p class="prediction-reasoning" id="predictedReasoningText">
+                  Tracing variables with target=23 bisects the array and matches index 4 on iteration 3.
+                </p>
+              </div>
+
+              <!-- Complexity Analysis Card -->
+              <div class="bottom-card bottom-card-complexity">
+                <div class="bottom-card-header">
+                  <div class="bottom-card-title-row">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                    <h4>Time & Space Complexity</h4>
+                  </div>
+                </div>
+                <div class="complexity-details-row">
+                  <div class="complexity-cell">
+                    <span class="cell-label">Time Complexity</span>
+                    <span class="cell-val val-time" id="detailTimeVal">O(log n)</span>
+                    <p class="cell-reasoning" id="detailTimeReasoning">Interval halved on each step.</p>
+                  </div>
+                  <div class="complexity-cell">
+                    <span class="cell-label">Space Complexity</span>
+                    <span class="cell-val val-space" id="detailSpaceVal">O(1)</span>
+                    <p class="cell-reasoning" id="detailSpaceReasoning">Only scalar pointers allocated.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
              SCREEN 4: CONTEXTUAL AI FOLLOW-UP CHAT
              ============================================== -->
         <section id="screenChat" class="app-screen">
@@ -937,6 +1270,13 @@ else:
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="14" x="8" y="5" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/></svg>
           </div>
           <span class="nav-label">Debug</span>
+        </button>
+
+        <button class="nav-item" data-screen="screenExplain">
+          <div class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <span class="nav-label">Explain</span>
         </button>
 
         <button class="nav-item" data-screen="screenHistory">
