@@ -62,13 +62,26 @@ fun MainAppScreen(viewModel: DebugViewModel) {
                 HomeScreen(
                     viewModel = viewModel,
                     onNavigateToDebug = { navController.navigate(Screen.Debug.route) },
-                    onNavigateToResults = { navController.navigate(Screen.Results.route) }
+                    onNavigateToResults = { navController.navigate(Screen.Results.route) },
+                    onNavigateToCamera = { navController.navigate(Screen.Camera.route) }
                 )
             }
             composable(Screen.Debug.route) {
                 DebugWorkspaceScreen(
                     viewModel = viewModel,
-                    onNavigateToResults = { navController.navigate(Screen.Results.route) }
+                    onNavigateToResults = { navController.navigate(Screen.Results.route) },
+                    onNavigateToCamera = { navController.navigate(Screen.Camera.route) }
+                )
+            }
+            composable(Screen.Camera.route) {
+                CameraScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToResults = {
+                        navController.navigate(Screen.Results.route) {
+                            popUpTo(Screen.Debug.route)
+                        }
+                    }
                 )
             }
             composable(Screen.Results.route) {

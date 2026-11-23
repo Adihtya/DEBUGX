@@ -48,19 +48,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0
-          name: "DebugX v1.0.0 (Android APK)"
+          tag_name: v1.1.0
+          name: "DebugX v1.1.0 - Live Camera Update (Android APK)"
           body: |
-            ### 🚀 DebugX Android APK Release
+            ### 🚀 DebugX Android APK Release (v1.1.0)
 
             **Find the Bug. Understand the Cause. Fix with Confidence.**
+
+            #### ✨ What's New in v1.1.0
+            - 📸 **Live Camera Integration:** Point your phone camera at laptop, desktop monitors, or external screens to directly capture coding bugs and exceptions.
+            - 🔄 **Front/Back Camera Flip:** Switch lenses on the fly.
+            - ⚡ **Direct Multimodal Gemini Debugging:** Extracted error analysis, root causes, and fixes straight from live captures or combined with code.
+            - 🎨 **Minimal Dark Design (#090909, #141414, #7957FF).**
 
             #### 📲 Download & Install
             Download **`app-debug.apk`** below to install on your Android phone or emulator:
             - **Package:** `com.debugx.app`
             - **Target SDK:** Android 14 (API 34)
             - **Min SDK:** Android 8.0 (API 26)
-            - **Built with:** Kotlin, Jetpack Compose, Material 3, Google Gemini AI SDK
+            - **Built with:** Kotlin, Jetpack Compose, CameraX, Material 3, Google Gemini AI SDK
           files: "**/*.apk"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

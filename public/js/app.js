@@ -16,6 +16,7 @@ class AppController {
   init() {
     this.initClock();
     this.bindNavigation();
+    this.bindCamera();
     this.bindWorkspace();
     this.bindResults();
     this.bindChat();
@@ -273,7 +274,11 @@ class AppController {
     const screenshotSection = document.getElementById('screenshotSection');
     const codeSection = document.getElementById('codeSection');
 
-    if (tab === 'screenshot') {
+    if (tab === 'camera') {
+      if (screenshotSection) screenshotSection.style.display = 'flex';
+      if (codeSection) codeSection.style.display = 'flex';
+      this.openCamera();
+    } else if (tab === 'screenshot') {
       if (screenshotSection) screenshotSection.style.display = 'flex';
       if (codeSection) codeSection.style.display = 'none';
     } else if (tab === 'code') {
@@ -284,6 +289,251 @@ class AppController {
       if (screenshotSection) screenshotSection.style.display = 'flex';
       if (codeSection) codeSection.style.display = 'flex';
     }
+  }
+
+  // --- Live Camera Controller ---
+  bindCamera() {
+    this.cameraStream = null;
+    this.cameraFacingMode = 'environment'; // default to rear camera for monitor capture
+    this.capturedTempPhoto = null;
+
+    // Trigger buttons
+    document.getElementById('quickActionCamera')?.addEventListener('click', () => {
+      this.switchScreen('screenDebug');
+      this.setWorkspaceTab('combined');
+      this.openCamera();
+    });
+
+    document.getElementById('openLiveCameraBtn')?.addEventListener('click', () => {
+      this.openCamera();
+    });
+
+    // Close & Cancel buttons
+    document.getElementById('closeCameraBtn')?.addEventListener('click', () => {
+      this.closeCamera();
+    });
+
+    document.getElementById('cameraCancelBtn')?.addEventListener('click', () => {
+      this.closeCamera();
+    });
+
+    // Flip camera buttons (top & bottom)
+    document.getElementById('flipCameraBtn')?.addEventListener('click', () => {
+      this.flipCamera();
+    });
+
+    document.getElementById('cameraFlipBottomBtn')?.addEventListener('click', () => {
+      this.flipCamera();
+    });
+
+    // Capture shutter button
+    document.getElementById('cameraShutterBtn')?.addEventListener('click', () => {
+      this.capturePhoto();
+    });
+
+    // Retake button
+    document.getElementById('cameraRetakeBtn')?.addEventListener('click', () => {
+      this.retakePhoto();
+    });
+
+    // Use Photo button
+    document.getElementById('cameraUsePhotoBtn')?.addEventListener('click', () => {
+      this.usePhoto(false);
+    });
+
+    // Use Photo & Analyse Now button
+    document.getElementById('cameraUseAndAnalyseBtn')?.addEventListener('click', () => {
+      this.usePhoto(true);
+    });
+
+    // Error retry & fallback
+    document.getElementById('retryCameraBtn')?.addEventListener('click', () => {
+      this.openCamera();
+    });
+
+    document.getElementById('cameraFallbackUploadBtn')?.addEventListener('click', () => {
+      this.closeCamera();
+      document.getElementById('screenshotFileInput')?.click();
+    });
+  }
+
+  async openCamera() {
+    const modal = document.getElementById('liveCameraModal');
+    const video = document.getElementById('cameraVideo');
+    const liveControls = document.getElementById('cameraLiveControls');
+    const reviewControls = document.getElementById('cameraReviewControls');
+    const previewOverlay = document.getElementById('cameraPreviewOverlay');
+    const errorOverlay = document.getElementById('cameraErrorOverlay');
+    const guideOverlay = document.getElementById('cameraGuideOverlay');
+
+    if (!modal || !video) return;
+
+    modal.style.display = 'flex';
+    if (liveControls) liveControls.style.display = 'flex';
+    if (reviewControls) reviewControls.style.display = 'none';
+    if (previewOverlay) previewOverlay.style.display = 'none';
+    if (errorOverlay) errorOverlay.style.display = 'none';
+    if (guideOverlay) guideOverlay.style.display = 'flex';
+
+    this.stopCameraStream();
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.showCameraError("Camera Not Supported", "Your browser does not support the mediaDevices.getUserMedia camera API.");
+      return;
+    }
+
+    try {
+      const constraints = {
+        video: {
+          facingMode: this.cameraFacingMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        // Fallback to basic video if facingMode constraint fails
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
+      this.cameraStream = stream;
+      video.srcObject = stream;
+      await video.play().catch(() => {});
+      this.showToast("Camera active. Align code or screen in frame.", "info");
+    } catch (err) {
+      console.error("Camera access error:", err);
+      let title = "Camera Permission Needed";
+      let msg = "Camera access was denied or blocked. Please allow camera permissions in your browser.";
+      if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        title = "No Camera Detected";
+        msg = "No video camera hardware was found connected to this device.";
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        title = "Camera In Use";
+        msg = "The camera is currently occupied by another program or browser tab.";
+      }
+      this.showCameraError(title, msg);
+    }
+  }
+
+  showCameraError(title, msg) {
+    const errorOverlay = document.getElementById('cameraErrorOverlay');
+    const errorTitle = document.getElementById('cameraErrorTitle');
+    const errorMsg = document.getElementById('cameraErrorMessage');
+    const guideOverlay = document.getElementById('cameraGuideOverlay');
+
+    if (errorTitle) errorTitle.textContent = title;
+    if (errorMsg) errorMsg.textContent = msg;
+    if (errorOverlay) errorOverlay.style.display = 'flex';
+    if (guideOverlay) guideOverlay.style.display = 'none';
+    this.showToast(title, "error");
+  }
+
+  async flipCamera() {
+    this.cameraFacingMode = this.cameraFacingMode === 'environment' ? 'user' : 'environment';
+    await this.openCamera();
+  }
+
+  capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const capturedImg = document.getElementById('cameraCapturedImg');
+    const liveControls = document.getElementById('cameraLiveControls');
+    const reviewControls = document.getElementById('cameraReviewControls');
+    const previewOverlay = document.getElementById('cameraPreviewOverlay');
+    const guideOverlay = document.getElementById('cameraGuideOverlay');
+
+    if (!video || !canvas || !capturedImg) return;
+
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, width, height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    this.capturedTempPhoto = dataUrl;
+
+    capturedImg.src = dataUrl;
+    if (previewOverlay) previewOverlay.style.display = 'flex';
+    if (guideOverlay) guideOverlay.style.display = 'none';
+    if (liveControls) liveControls.style.display = 'none';
+    if (reviewControls) reviewControls.style.display = 'flex';
+
+    this.showToast("Photo captured! Check preview or Retake.", "success");
+  }
+
+  retakePhoto() {
+    this.capturedTempPhoto = null;
+    const liveControls = document.getElementById('cameraLiveControls');
+    const reviewControls = document.getElementById('cameraReviewControls');
+    const previewOverlay = document.getElementById('cameraPreviewOverlay');
+    const guideOverlay = document.getElementById('cameraGuideOverlay');
+
+    if (previewOverlay) previewOverlay.style.display = 'none';
+    if (guideOverlay) guideOverlay.style.display = 'flex';
+    if (liveControls) liveControls.style.display = 'flex';
+    if (reviewControls) reviewControls.style.display = 'none';
+  }
+
+  usePhoto(autoAnalyse = false) {
+    if (!this.capturedTempPhoto) {
+      this.showToast("No captured photo available.", "warning");
+      return;
+    }
+
+    this.uploadedImageBase64 = this.capturedTempPhoto;
+    this.uploadedImageMime = 'image/jpeg';
+
+    // Update preview UI in workspace
+    const previewImg = document.getElementById('screenshotPreviewImg');
+    const filenameEl = document.getElementById('previewFilename');
+    const filesizeEl = document.getElementById('previewFilesize');
+    const idleState = document.getElementById('uploadIdleState');
+    const previewState = document.getElementById('uploadPreviewState');
+
+    if (previewImg) previewImg.src = this.uploadedImageBase64;
+    if (filenameEl) filenameEl.textContent = `live_photo_${Date.now().toString().slice(-4)}.jpg`;
+    if (filesizeEl) {
+      const approxBytes = Math.round((this.uploadedImageBase64.length * 3) / 4);
+      filesizeEl.textContent = `${(approxBytes / 1024).toFixed(1)} KB (Live Capture)`;
+    }
+
+    if (idleState) idleState.style.display = 'none';
+    if (previewState) previewState.style.display = 'flex';
+
+    this.closeCamera();
+    this.switchScreen('screenDebug');
+    this.setWorkspaceTab('combined');
+
+    this.showToast("Photo loaded into workspace!", "success");
+
+    if (autoAnalyse) {
+      setTimeout(() => this.startAnalysis(), 250);
+    }
+  }
+
+  stopCameraStream() {
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(track => {
+        try { track.stop(); } catch (e) {}
+      });
+      this.cameraStream = null;
+    }
+  }
+
+  closeCamera() {
+    this.stopCameraStream();
+    const video = document.getElementById('cameraVideo');
+    if (video) video.srcObject = null;
+    const modal = document.getElementById('liveCameraModal');
+    if (modal) modal.style.display = 'none';
+    this.capturedTempPhoto = null;
   }
 
   handleImageUpload(file) {

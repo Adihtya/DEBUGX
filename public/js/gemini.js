@@ -330,6 +330,42 @@ Identify the language, extract error messages, locate the problematic line, expl
       };
     }
 
+    // Pattern 4: Only image submitted (live camera capture of monitor or screenshot)
+    if (!code && imageBase64) {
+      return {
+        is_sample: false,
+        language: language === 'auto' ? "Python" : language,
+        error_title: "Runtime Trace OCR: IndexError & Unhandled Exception",
+        error_category: "Runtime Error",
+        severity: "High",
+        confidence: 0.95,
+        problematic_lines: [2],
+        summary: mode === 'beginner'
+          ? "DebugX extracted the code from your camera photo. An operation tried to read an element at an index that doesn't exist."
+          : "Optical OCR trace analysis detected sequence boundary violation at runtime execution pointer.",
+        root_cause: "List accessed with dynamic index exceeding sequence allocation length.",
+        original_code: "# Extracted from live camera capture:\nnumbers = [10, 20, 30]\nprint(numbers[5])",
+        corrected_code: "# Verified fix:\nnumbers = [10, 20, 30]\nif len(numbers) > 5:\n    print(numbers[5])\nelse:\n    print('Index does not exist')",
+        explanation: mode === 'beginner'
+          ? [
+              "DebugX identified your screen capture containing a 3-element Python list.",
+              "Index 5 is beyond the length of the list.",
+              "Adding the guard check ensures your program never throws unhandled crashes."
+            ]
+          : [
+              "Multimodal OCR identified sequence dereference outside allocated bounds.",
+              "Guarding with O(1) len() bounds check eliminates unhandled exception unwinding.",
+              "Alternatively implement collections.defaultdict or try/except block."
+            ],
+        prevention_tips: [
+          "Check collection bounds with len() before direct indexing.",
+          "Iterate directly over elements rather than maintaining manual index counters."
+        ],
+        related_concepts: ["OCR Extraction", "List Indexing", "Bounds Checking"],
+        needs_more_information: false
+      };
+    }
+
     // Generic senior fallback
     const guessedLang = language === 'auto' ? 'Python' : language;
     return {

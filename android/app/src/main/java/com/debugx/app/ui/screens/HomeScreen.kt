@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PlayArrow
@@ -34,7 +35,8 @@ import com.debugx.app.viewmodel.DebugViewModel
 fun HomeScreen(
     viewModel: DebugViewModel,
     onNavigateToDebug: () -> Unit,
-    onNavigateToResults: () -> Unit
+    onNavigateToResults: () -> Unit,
+    onNavigateToCamera: () -> Unit = {}
 ) {
     val history by viewModel.history.collectAsState()
 
@@ -155,7 +157,15 @@ fun HomeScreen(
             ) {
                 QuickActionCard(
                     modifier = Modifier.weight(1f),
-                    title = "Upload Screenshot",
+                    title = "Take Photo",
+                    subtitle = "Monitor capture",
+                    icon = Icons.Default.CameraAlt,
+                    color = Color(0xFF7957FF),
+                    onClick = onNavigateToCamera
+                )
+                QuickActionCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Upload Image",
                     subtitle = "OCR traces",
                     icon = Icons.Default.Image,
                     color = AccentSecondary,

@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
@@ -41,7 +42,8 @@ import com.debugx.app.viewmodel.DebugViewModel
 @Composable
 fun DebugWorkspaceScreen(
     viewModel: DebugViewModel,
-    onNavigateToResults: () -> Unit
+    onNavigateToResults: () -> Unit,
+    onNavigateToCamera: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -135,22 +137,48 @@ fun DebugWorkspaceScreen(
                             }
                         }
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(BgInput)
-                                .border(1.dp, BorderColor, RoundedCornerShape(8.dp))
-                                .clickable { imagePicker.launch("image/*") },
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(100.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF141414))
+                                    .border(1.dp, Color(0x667957FF), RoundedCornerShape(8.dp))
+                                    .clickable { onNavigateToCamera() },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, tint = AccentSecondary)
-                                Text("Tap to select error screenshot", color = TextSecondary, fontSize = 12.sp)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color(0xFF7957FF))
+                                    Text("Take Live Photo", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Point at monitor screen", color = TextMuted, fontSize = 10.sp)
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(100.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(BgInput)
+                                    .border(1.dp, BorderColor, RoundedCornerShape(8.dp))
+                                    .clickable { imagePicker.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.CloudUpload, contentDescription = null, tint = AccentSecondary)
+                                    Text("Upload Screenshot", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Browse file manager", color = TextMuted, fontSize = 10.sp)
+                                }
                             }
                         }
                     }
