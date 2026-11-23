@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DebugX — Find the Bug. Understand the Cause. Fix with Confidence.</title>
+  
+  <!-- Inter & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B5CF6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='8' height='14' x='8' y='5' rx='4'/><path d='m19 7-3 2'/><path d='m5 7 3 2'/><path d='m19 19-3-2'/><path d='m5 19 3-2'/><path d='M20 13h-4'/><path d='M4 13h4'/><path d='m10 9 2 2 2-2'/></svg>">
+</head>
+<body class="theme-dark">
+
+  <!-- Desktop Top Bar with Device Preview Toggle -->
+  <header class="app-topbar">
+    <div class="topbar-left">
+      <div class="brand-badge">
+        <div class="brand-logo-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <rect width="8" height="14" x="8" y="5" rx="4"/>
+            <path d="m19 7-3 2"/><path d="m5 7 3 2"/>
+            <path d="m19 19-3-2"/><path d="m5 19 3-2"/>
+            <path d="M20 13h-4"/><path d="M4 13h4"/>
+            <path d="m10 9 2 2 2-2"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <span class="brand-name">Debug<span class="brand-accent">X</span></span>
+          <span class="brand-tagline">AI Developer Tool</span>
+        </div>
+      </div>
+      <span class="environment-pill">Native Android APK Project & Responsive Engine</span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="mode-preview-switcher" title="Toggle Display Frame">
+        <button id="viewMobileBtn" class="switcher-btn active" title="Android Mobile View">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+          <span>Mobile Device (Pixel 8)</span>
+        </button>
+        <button id="viewResponsiveBtn" class="switcher-btn" title="Full Responsive View">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          <span>Full Width</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="api-key-indicator" id="apiKeyIndicator" title="Click to configure Gemini API Key">
+        <span class="indicator-dot active"></span>
+        <span class="indicator-text" id="apiStatusText">Gemini Ready (Demo + Live API)</span>
+      </div>
+      <button class="topbar-btn" id="openSettingsQuickBtn" title="Settings & API Key">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Device Frame Wrapper -->
+  <main class="viewport-wrapper">
+    <div id="deviceFrame" class="device-frame frame-mobile">
+      
+      <!-- Android Status Bar -->
+      <div class="android-status-bar">
+        <div class="status-time" id="statusClock">09:41</div>
+        <div class="camera-punchhole"></div>
+        <div class="status-icons">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+          <div class="battery-icon">
+            <div class="battery-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Content Container -->
+      <div class="app-body">
+        
+        <!-- ==============================================
+             SCREEN 1: HOME SCREEN
+             ============================================== -->
+        <section id="screenHome" class="app-screen active">
+          <!-- Home Header -->
+          <div class="screen-header">
+            <div class="header-user">
+              <div class="user-avatar" id="homeAvatar">AD</div>
+              <div class="header-titles">
+                <span class="header-subtitle">Welcome back, Developer</span>
+                <h1 class="header-greeting">Ready to squash some bugs?</h1>
+              </div>
+            </div>
+            <div class="header-actions">
+              <button class="icon-btn" id="notificationsBtn" title="Notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <span class="badge-dot"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Hero Section -->
+          <div class="hero-card">
+            <div class="hero-badge">
+              <span class="badge-sparkle">✨</span>
+              <span>Gemini 1.5 Multimodal Engine</span>
+            </div>
+            <h2 class="hero-title">What are we debugging today?</h2>
+            <p class="hero-desc">
+              Upload error screenshots, paste stack traces, or drop your source code. Get senior-engineer root cause analysis and verified fixes in seconds.
+            </p>
+            <div class="hero-cta-row">
+              <button class="btn btn-primary btn-glow" id="heroStartDebugBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="14" x="8" y="5" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/></svg>
+                <span>Start Debugging</span>
+              </button>
+              <button class="btn btn-secondary" id="heroSampleBtn" title="Try Section 18 Sample Bug">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Try Sample Bug</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Actions Grid -->
+          <div class="section-title-row">
+            <h3 class="section-title">Quick Actions</h3>
+            <span class="section-badge">Choose input method</span>
+          </div>
+          <div class="quick-actions-grid">
+            <div class="action-card" id="quickActionScreenshot">
+              <div class="action-icon icon-cyan">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              </div>
+              <h4 class="action-title">Upload Screenshot</h4>
+              <p class="action-desc">OCR analysis for console errors & stack traces</p>
+            </div>
+
+            <div class="action-card" id="quickActionCode">
+              <div class="action-icon icon-violet">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <h4 class="action-title">Paste Source Code</h4>
+              <p class="action-desc">Syntax-aware debugging across 15+ languages</p>
+            </div>
+
+            <div class="action-card action-card-featured" id="quickActionCombined">
+              <div class="featured-tag">Recommended</div>
+              <div class="action-icon icon-gradient">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+              </div>
+              <h4 class="action-title">Screenshot + Code</h4>
+              <p class="action-desc">Multimodal verification with maximum confidence</p>
+            </div>
+          </div>
+
+          <!-- Dashboard Metric Widgets -->
+          <div class="section-title-row">
+            <h3 class="section-title">Debugging Overview</h3>
+            <span class="section-subtitle">Real-time statistics</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Errors Analysed</span>
+                <span class="metric-trend up">+18% this week</span>
+              </div>
+              <div class="metric-value" id="metricTotalErrors">128</div>
+              <div class="metric-subtext">Across 8 languages</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Bugs Fixed</span>
+                <span class="metric-badge-success">98.4%</span>
+              </div>
+              <div class="metric-value" id="metricBugsFixed">126</div>
+              <div class="metric-subtext">Resolved with confidence</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Most Used Language</span>
+                <span class="metric-lang-tag">Python</span>
+              </div>
+              <div class="metric-value">44%</div>
+              <div class="metric-subtext">Followed by Kotlin & JS</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Avg. Resolution</span>
+                <span class="metric-sparkle">⚡ Fast</span>
+              </div>
+              <div class="metric-value">1.4s</div>
+              <div class="metric-subtext">Root cause latency</div>
+            </div>
+          </div>
+
+          <!-- Debugging Tip of the Day -->
+          <div class="tip-card">
+            <div class="tip-card-header">
+              <div class="tip-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7M9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z"/></svg>
+                <span>Senior Engineer Debugging Tip</span>
+              </div>
+              <button class="text-btn" id="nextTipBtn">Next Tip →</button>
+            </div>
+            <h4 class="tip-title" id="tipTitle">Isolate with Binary Search Debugging</h4>
+            <p class="tip-body" id="tipBody">
+              When diagnosing an unexpected state in long functions, divide your code in half with a logging checkpoint. If the state is clean at halfway, the bug is downstream. You can narrow down 1,000 lines in 10 checks.
+            </p>
+          </div>
+
+          <!-- Recent Activity Section -->
+          <div class="section-title-row">
+            <h3 class="section-title">Recent Activity</h3>
+            <button class="text-link-btn" id="viewAllHistoryLink">View All →</button>
+          </div>
+          <div class="recent-list" id="homeRecentList">
+            <!-- Dynamically populated from JS -->
+          </div>
+
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 2: DEBUGGING WORKSPACE
+             ============================================== -->
+        <section id="screenDebug" class="app-screen">
+          <div class="screen-header">
+            <div>
+              <span class="header-subtitle">AI Debugging Engine</span>
+              <h1 class="header-title">Workspace</h1>
+            </div>
+            <div class="workspace-header-actions">
+              <button class="btn btn-sm btn-outline" id="loadSampleWorkspaceBtn" title="Load Section 18 IndexError Example">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Sample Bug</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Input Mode Tabs -->
+          <div class="tab-pill-bar">
+            <button class="tab-pill active" data-tab="combined">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+              <span>Screenshot + Code</span>
+            </button>
+            <button class="tab-pill" data-tab="code">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span>Paste Code</span>
+            </button>
+            <button class="tab-pill" data-tab="screenshot">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              <span>Screenshot Only</span>
+            </button>
+          </div>
+
+          <!-- Screenshot Upload Box -->
+          <div class="workspace-card" id="screenshotSection">
+            <div class="card-header-row">
+              <div class="card-header-left">
+                <span class="step-num">A</span>
+                <h3 class="card-title">Screenshot / Error Image</h3>
+              </div>
+              <span class="file-spec-hint">PNG, JPG up to 10MB</span>
+            </div>
+
+            <div class="upload-dropzone" id="uploadDropzone">
+              <input type="file" id="screenshotFileInput" accept="image/png, image/jpeg, image/jpg" style="display: none;">
+              
+              <div class="upload-idle-state" id="uploadIdleState">
+                <div class="upload-icon-circle">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="upload-text-group">
+                  <span class="upload-main-text">Tap or drop screenshot of error</span>
+                  <span class="upload-sub-text">Stack traces, compiler logs, or IDE highlights</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" id="browseImagesBtn">Browse Files</button>
+              </div>
+
+              <!-- Upload Preview State -->
+              <div class="upload-preview-state" id="uploadPreviewState" style="display: none;">
+                <div class="preview-img-wrapper">
+                  <img id="screenshotPreviewImg" src="" alt="Screenshot Preview">
+                </div>
+                <div class="preview-info-row">
+                  <div class="preview-meta">
+                    <span class="preview-filename" id="previewFilename">error_screenshot.png</span>
+                    <span class="preview-filesize" id="previewFilesize">420 KB</span>
+                  </div>
+                  <div class="preview-btn-row">
+                    <button type="button" class="btn-icon-subtle" id="replaceImageBtn" title="Replace image">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                    </button>
+                    <button type="button" class="btn-icon-subtle btn-danger" id="removeImageBtn" title="Remove image">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Input Box -->
+          <div class="workspace-card" id="codeSection">
+            <div class="card-header-row">
+              <div class="card-header-left">
+                <span class="step-num">B</span>
+                <h3 class="card-title">Source Code</h3>
+              </div>
+              <div class="code-controls-row">
+                <div class="custom-select-wrapper">
+                  <select id="codeLanguageSelect" class="styled-select">
+                    <option value="auto">⚡ Auto Detect</option>
+                    <option value="python" selected>Python</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="java">Java</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="c">C</option>
+                    <option value="cpp">C++</option>
+                    <option value="swift">Swift</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="sql">SQL</option>
+                    <option value="php">PHP</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <button type="button" class="btn-icon-subtle" id="clearCodeBtn" title="Clear Code">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Code Editor Component -->
+            <div class="code-editor-wrapper">
+              <div class="editor-header">
+                <div class="window-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <span class="editor-filename" id="editorFilename">main.py</span>
+                <button type="button" class="btn-copy-code" id="pasteClipboardBtn">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  <span>Paste</span>
+                </button>
+              </div>
+
+              <div class="editor-body">
+                <div class="line-numbers" id="editorLineNumbers">1<br>2<br>3<br>4</div>
+                <textarea id="codeTextarea" class="code-textarea" placeholder="# Paste your buggy code or stack trace here...
+numbers = [10, 20, 30]
+print(numbers[5])" spellcheck="false"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explanation Mode Selection -->
+          <div class="workspace-card mode-selector-card">
+            <div class="card-header-row">
+              <div class="card-header-left">
+                <span class="step-num">C</span>
+                <h3 class="card-title">Explanation Depth</h3>
+              </div>
+              <span class="mode-tag-current" id="activeModeBadge">Beginner Mode</span>
+            </div>
+
+            <div class="mode-toggle-group">
+              <label class="mode-option active" id="modeBeginnerLabel">
+                <input type="radio" name="explanationMode" value="beginner" checked>
+                <div class="mode-option-content">
+                  <div class="mode-title-row">
+                    <span class="mode-icon">🌱</span>
+                    <span class="mode-name">Beginner Mode</span>
+                  </div>
+                  <p class="mode-desc">Plain English, relatable analogies, step-by-step concepts, no jargon.</p>
+                </div>
+              </label>
+
+              <label class="mode-option" id="modeAdvancedLabel">
+                <input type="radio" name="explanationMode" value="advanced">
+                <div class="mode-option-content">
+                  <div class="mode-title-row">
+                    <span class="mode-icon">⚡</span>
+                    <span class="mode-name">Advanced Mode</span>
+                  </div>
+                  <p class="mode-desc">Memory layout, runtime mechanics, performance caveats, edge cases.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit CTA Button -->
+          <div class="workspace-submit-box">
+            <button class="btn btn-primary btn-xl btn-glow w-100" id="analyseCodeBtn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span>Analyse My Code</span>
+            </button>
+            <p class="submit-note">
+              <span>🔒 Encrypted local processing</span> • <span>Powered by Gemini Multimodal API</span>
+            </p>
+          </div>
+
+          <!-- Loading Overlay -->
+          <div class="analysis-loading-overlay" id="analysisLoadingOverlay" style="display: none;">
+            <div class="scanner-box">
+              <div class="scanner-laser"></div>
+              <div class="loading-spinner-ring"></div>
+            </div>
+            <h3 class="loading-title" id="loadingStageTitle">Extracting Code & Error Traces...</h3>
+            <p class="loading-subtitle" id="loadingStageSub">Senior engineer AI reasoning in progress</p>
+            <div class="loading-progress-bar">
+              <div class="progress-fill" id="analysisProgressFill"></div>
+            </div>
+            <div class="loading-steps-list">
+              <div class="step-item active" id="stepOCR">1. Multimodal OCR & Syntax parsing</div>
+              <div class="step-item" id="stepCause">2. Isolating problematic line & root cause</div>
+              <div class="step-item" id="stepFix">3. Synthesizing verified fix & prevention tips</div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 3: DEBUGGING RESULTS SCREEN
+             ============================================== -->
+        <section id="screenResults" class="app-screen">
+          <!-- Results Top Bar -->
+          <div class="screen-header">
+            <button class="btn-icon-subtle" id="backToWorkspaceBtn" title="Back to workspace">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="header-titles text-center">
+              <span class="header-subtitle">Analysis Complete</span>
+              <h1 class="header-title">Diagnostic Report</h1>
+            </div>
+            <button class="btn-icon-subtle" id="saveSessionBtn" title="Save to History">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            </button>
+          </div>
+
+          <!-- Demo Sample Badge (shown when sample is loaded) -->
+          <div class="sample-banner" id="sampleDataBanner" style="display: none;">
+            <span class="sample-badge">SAMPLE DEMONSTRATION</span>
+            <span>Section 18 Python IndexError Sample Data.</span>
+          </div>
+
+          <!-- Mode Quick Switcher -->
+          <div class="results-mode-bar">
+            <span class="mode-bar-label">Explanation Mode:</span>
+            <div class="results-mode-toggle">
+              <button class="rmode-btn active" id="resultModeBeginnerBtn">🌱 Beginner</button>
+              <button class="rmode-btn" id="resultModeAdvancedBtn">⚡ Advanced</button>
+            </div>
+          </div>
+
+          <!-- A. ERROR OVERVIEW CARD -->
+          <div class="result-card overview-card">
+            <div class="overview-header">
+              <div class="overview-left">
+                <span class="category-pill" id="resCategory">Runtime Error</span>
+                <span class="lang-pill" id="resLanguage">Python</span>
+              </div>
+              <div class="overview-right">
+                <span class="severity-badge medium" id="resSeverity">Medium Severity</span>
+              </div>
+            </div>
+
+            <h2 class="error-headline" id="resTitle">IndexError: list index out of range</h2>
+
+            <div class="metrics-row">
+              <div class="confidence-box">
+                <div class="metric-mini-label">AI Confidence</div>
+                <div class="confidence-val-row">
+                  <div class="progress-bar-sm">
+                    <div class="progress-fill fill-accent" id="resConfidenceBar" style="width: 95%;"></div>
+                  </div>
+                  <span class="confidence-num" id="resConfidence">95%</span>
+                </div>
+              </div>
+
+              <div class="problem-line-box">
+                <div class="metric-mini-label">Problematic Line</div>
+                <div class="problem-line-tag" id="resProblemLines">Line 2</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- B. WHAT WENT WRONG? -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-red">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3 class="card-title">What Went Wrong?</h3>
+            </div>
+            <p class="explanation-text" id="resSummary">
+              The code is attempting to access an element at index 5 from a list that only contains 3 elements.
+            </p>
+          </div>
+
+          <!-- C. WHY DID IT HAPPEN? (ROOT CAUSE) -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-yellow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/></svg>
+              </div>
+              <h3 class="card-title">Why Did It Happen?</h3>
+            </div>
+            <p class="explanation-text" id="resRootCause">
+              In Python, list indexing is zero-based: for a list with 3 items, valid indices are 0, 1, and 2. Index 5 is outside the bounds of the allocated sequence.
+            </p>
+          </div>
+
+          <!-- D. PROBLEMATIC CODE -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-red">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <h3 class="card-title">Original Problematic Code</h3>
+            </div>
+            <div class="code-viewer error-block">
+              <div class="viewer-header">
+                <span class="viewer-tag tag-error">Original (Failing)</span>
+              </div>
+              <pre class="code-pre" id="resOriginalCodePre"><code id="resOriginalCode">numbers = [10, 20, 30]
+<span class="line-highlight-error">print(numbers[5])  # <-- IndexError here</span></code></pre>
+            </div>
+          </div>
+
+          <!-- E. SUGGESTED FIX -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h3 class="card-title">Suggested Fix</h3>
+              <button class="btn btn-sm btn-secondary copy-fix-btn" id="copyFixBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                <span id="copyFixBtnText">Copy Code</span>
+              </button>
+            </div>
+            <div class="code-viewer success-block">
+              <div class="viewer-header">
+                <span class="viewer-tag tag-success">Corrected Solution</span>
+              </div>
+              <pre class="code-pre"><code id="resCorrectedCode">numbers = [10, 20, 30]
+
+if len(numbers) > 5:
+    print(numbers[5])
+else:
+    print("Index does not exist")</code></pre>
+            </div>
+          </div>
+
+          <!-- F. WHY THIS FIX WORKS -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-cyan">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+              <h3 class="card-title">Why This Fix Works</h3>
+            </div>
+            <ul class="steps-bullet-list" id="resExplanationList">
+              <li>Lists use 0-based indexing. The valid indices are 0, 1, and 2.</li>
+              <li>Checking <code>len(numbers) &gt; 5</code> guards against bounds violations before element access.</li>
+              <li>An alternate defensive approach is using a <code>try / except IndexError</code> block.</li>
+            </ul>
+          </div>
+
+          <!-- G. PREVENTION TIPS -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-violet">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h3 class="card-title">Prevention Tips</h3>
+            </div>
+            <ul class="tips-bullet-list" id="resPreventionList">
+              <li>Always check container length or use bounds verification before indexing.</li>
+              <li>Prefer iterating directly with <code>for item in numbers:</code> rather than manual indexing.</li>
+              <li>Use safe getter utilities or exception guards when processing external inputs.</li>
+            </ul>
+          </div>
+
+          <!-- H. RELATED CONCEPTS -->
+          <div class="result-card">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+              </div>
+              <h3 class="card-title">Related Concepts to Master</h3>
+            </div>
+            <div class="concepts-tags-row" id="resConceptsList">
+              <span class="concept-chip">List Indexing</span>
+              <span class="concept-chip">Array Bounds</span>
+              <span class="concept-chip">Exception Handling</span>
+            </div>
+          </div>
+
+          <!-- ACTION FOOTER: FOLLOW-UP CHAT & HISTORY -->
+          <div class="results-actions-card">
+            <h4 class="action-card-heading">Have follow-up questions?</h4>
+            <p class="action-card-sub">Ask AI to explain line-by-line, optimize, or provide practice problems.</p>
+            <div class="action-buttons-row">
+              <button class="btn btn-primary btn-glow w-100" id="openFollowUpChatBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Ask AI Follow-Up</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 4: CONTEXTUAL AI FOLLOW-UP CHAT
+             ============================================== -->
+        <section id="screenChat" class="app-screen">
+          <div class="screen-header">
+            <button class="btn-icon-subtle" id="backToResultsBtn" title="Back to results">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="header-titles text-center">
+              <span class="header-subtitle">Contextual Debug Assistant</span>
+              <h1 class="header-title">Follow-Up Chat</h1>
+            </div>
+            <div class="active-context-pill" id="chatContextPill">
+              <span class="dot-online"></span>
+              <span id="chatContextName">Python IndexError</span>
+            </div>
+          </div>
+
+          <!-- Chat Messages Container -->
+          <div class="chat-messages-container" id="chatMessages">
+            <div class="chat-bubble ai-bubble">
+              <div class="bubble-avatar">DX</div>
+              <div class="bubble-content">
+                <p>Hello! I have the full context of your <strong><span id="chatErrorTitleLabel">IndexError</span></strong> analysis.</p>
+                <p>What would you like to explore further?</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Suggestion Chips -->
+          <div class="quick-chips-wrapper">
+            <div class="quick-chips-scroll">
+              <button class="chip-btn" data-query="Why is this error happening?">Why is this error happening?</button>
+              <button class="chip-btn" data-query="Explain this code line by line.">Explain line by line</button>
+              <button class="chip-btn" data-query="Is there another way to fix it?">Another way to fix it?</button>
+              <button class="chip-btn" data-query="Can you optimise this code?">Can you optimise this?</button>
+              <button class="chip-btn" data-query="Give me a similar coding problem to practise.">Practice problem</button>
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="chat-input-bar">
+            <textarea id="chatInputText" class="chat-input" placeholder="Ask about this error or code..." rows="1"></textarea>
+            <button class="btn-chat-send" id="sendChatBtn" title="Send Message">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 5: DEBUGGING HISTORY
+             ============================================== -->
+        <section id="screenHistory" class="app-screen">
+          <div class="screen-header">
+            <div>
+              <span class="header-subtitle">Saved Records</span>
+              <h1 class="header-title">History</h1>
+            </div>
+            <button class="btn btn-sm btn-outline btn-danger" id="clearAllHistoryBtn" title="Clear all history">Clear</button>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="history-controls">
+            <div class="search-input-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="historySearchInput" placeholder="Search by error title, language, or keyword...">
+            </div>
+
+            <!-- Language Filter Chips -->
+            <div class="history-filter-chips" id="historyLangFilters">
+              <button class="filter-chip active" data-filter="all">All</button>
+              <button class="filter-chip" data-filter="python">Python</button>
+              <button class="filter-chip" data-filter="kotlin">Kotlin</button>
+              <button class="filter-chip" data-filter="javascript">JavaScript</button>
+              <button class="filter-chip" data-filter="java">Java</button>
+              <button class="filter-chip" data-filter="cpp">C++</button>
+            </div>
+          </div>
+
+          <!-- History Sessions List -->
+          <div class="history-list" id="historyListContainer">
+            <!-- Dynamically populated from JS -->
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" id="historyEmptyState" style="display: none;">
+            <div class="empty-icon-box">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+            </div>
+            <h4 class="empty-title">No Debugging Sessions Found</h4>
+            <p class="empty-desc">Analysed errors and fixes will be securely saved here for quick review.</p>
+            <button class="btn btn-primary" id="historyNewDebugBtn">Debug New Bug</button>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 6: LEARNING CENTRE
+             ============================================== -->
+        <section id="screenLearn" class="app-screen">
+          <div class="screen-header">
+            <div>
+              <span class="header-subtitle">Improve Your Debugging Skills</span>
+              <h1 class="header-title">Learning Centre</h1>
+            </div>
+            <div class="learn-level-pill" id="learnLevelBadge">All Levels</div>
+          </div>
+
+          <!-- Learn Tabs -->
+          <div class="tab-pill-bar">
+            <button class="tab-pill active" data-learntab="errors">Error Library</button>
+            <button class="tab-pill" data-learntab="challenges">Challenges</button>
+            <button class="tab-pill" data-learntab="quiz">Practice Quiz</button>
+          </div>
+
+          <!-- Sub-Tab A: Error Explanation Library -->
+          <div class="learn-subview active" id="learnErrorsView">
+            <div class="lang-selector-scroll" id="learnLangScroll">
+              <button class="pill-btn active" data-lang="python">Python</button>
+              <button class="pill-btn" data-lang="kotlin">Kotlin</button>
+              <button class="pill-btn" data-lang="java">Java</button>
+              <button class="pill-btn" data-lang="javascript">JavaScript</button>
+              <button class="pill-btn" data-lang="cpp">C++</button>
+            </div>
+
+            <div class="error-cards-list" id="errorCardsContainer">
+              <!-- Dynamically populated from JS -->
+            </div>
+          </div>
+
+          <!-- Sub-Tab B: Debugging Challenges -->
+          <div class="learn-subview" id="learnChallengesView" style="display: none;">
+            <div class="challenges-intro">
+              <h4>Hands-On Bug Hunts</h4>
+              <p>Find the bug, inspect the error output, and test your solution.</p>
+            </div>
+            <div class="challenges-list" id="challengesContainer">
+              <!-- Dynamically populated from JS -->
+            </div>
+          </div>
+
+          <!-- Sub-Tab C: Practice Quiz -->
+          <div class="learn-subview" id="learnQuizView" style="display: none;">
+            <div class="quiz-card" id="quizCard">
+              <div class="quiz-header">
+                <span class="quiz-badge" id="quizDifficulty">Intermediate</span>
+                <span class="quiz-count" id="quizCounter">Question 1 of 5</span>
+              </div>
+              <h3 class="quiz-question" id="quizQuestion">What happens when you execute this Python snippet?</h3>
+              <pre class="quiz-code-block"><code id="quizCode">def add_item(item, target_list=[]):
+    target_list.append(item)
+    return target_list</code></pre>
+              <div class="quiz-options-list" id="quizOptionsList">
+                <!-- Dynamically populated -->
+              </div>
+              <div class="quiz-explanation-box" id="quizExplanation" style="display: none;">
+                <!-- Explanation -->
+              </div>
+              <button class="btn btn-secondary w-100" id="quizNextBtn" style="display: none;">Next Question →</button>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==============================================
+             SCREEN 7: PROFILE AND SETTINGS
+             ============================================== -->
+        <section id="screenProfile" class="app-screen">
+          <div class="screen-header">
+            <div>
+              <span class="header-subtitle">Account & Preferences</span>
+              <h1 class="header-title">Developer Profile</h1>
+            </div>
+          </div>
+
+          <!-- Profile Header Card -->
+          <div class="profile-card">
+            <div class="profile-avatar-large">AD</div>
+            <div class="profile-info">
+              <h3 class="profile-name" id="profileName">Aditya Chaudhari</h3>
+              <span class="profile-role">Senior Full-Stack & Android Engineer</span>
+              <span class="profile-email" id="profileEmail">dev@debugx.ai</span>
+            </div>
+          </div>
+
+          <!-- Gemini API Configuration Box -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-icon icon-violet">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-6 6l-2 2m-6 6l-2 2"/><path d="M3 7l2 2m6-6l2 2m6 6l2 2"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div>
+                <h4 class="settings-title">Google Gemini API Key</h4>
+                <p class="settings-desc">Enables live Gemini 1.5 Flash multimodal intelligence</p>
+              </div>
+            </div>
+
+            <div class="api-key-input-group">
+              <input type="password" id="geminiApiKeyInput" class="styled-input" placeholder="AIzaSy... (leave empty for demo engine)">
+              <button type="button" class="btn-icon-subtle" id="toggleApiKeyVisibilityBtn" title="Show/Hide">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+
+            <div class="api-key-actions-row">
+              <button class="btn btn-sm btn-primary" id="saveApiKeyBtn">Save Key</button>
+              <button class="btn btn-sm btn-outline" id="testApiKeyBtn">Test Connection</button>
+              <span class="api-key-status-msg" id="apiKeyStatusMsg"></span>
+            </div>
+            <p class="api-note">
+              🔒 Key is saved locally in your browser storage only. Never transmitted to third-party servers.
+            </p>
+          </div>
+
+          <!-- Explanation Preferences -->
+          <div class="settings-card">
+            <h4 class="settings-title">Default Explanation Mode</h4>
+            <p class="settings-desc">Choose your default debugging depth</p>
+            <div class="pref-radio-group">
+              <label class="pref-radio-label">
+                <input type="radio" name="defaultPrefMode" value="beginner" checked>
+                <span>🌱 Beginner (Relatable concepts & step-by-step)</span>
+              </label>
+              <label class="pref-radio-label">
+                <input type="radio" name="defaultPrefMode" value="advanced">
+                <span>⚡ Advanced (Memory, execution & performance mechanics)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Preferred Languages -->
+          <div class="settings-card">
+            <h4 class="settings-title">Preferred Languages</h4>
+            <p class="settings-desc">Tailors error recommendations to your stack</p>
+            <div class="pref-lang-tags" id="prefLangTags">
+              <span class="pref-tag active">Python</span>
+              <span class="pref-tag active">Kotlin</span>
+              <span class="pref-tag active">JavaScript</span>
+              <span class="pref-tag active">Java</span>
+              <span class="pref-tag">C++</span>
+              <span class="pref-tag">Swift</span>
+              <span class="pref-tag">Go</span>
+              <span class="pref-tag">Rust</span>
+            </div>
+          </div>
+
+          <!-- App Information & APK Guide -->
+          <div class="settings-card apk-info-card">
+            <div class="settings-card-header">
+              <div class="settings-icon icon-cyan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+              </div>
+              <div>
+                <h4 class="settings-title">Native Android APK Project</h4>
+                <p class="settings-desc">Complete Kotlin & Jetpack Compose Gradle project</p>
+              </div>
+            </div>
+            <p class="apk-card-text">
+              The full native Android source code is included in the <code>android/</code> directory. You can build <code>app-debug.apk</code> directly using:
+            </p>
+            <div class="cli-command-box">
+              <code>cd android && ./gradlew assembleDebug</code>
+              <button class="btn-copy-code" id="copyGradleCmdBtn">Copy</button>
+            </div>
+          </div>
+
+          <!-- Export & Reset Data -->
+          <div class="settings-card">
+            <h4 class="settings-title">Data Management</h4>
+            <div class="data-actions-row">
+              <button class="btn btn-sm btn-outline" id="exportHistoryBtn">Export History (.json)</button>
+              <button class="btn btn-sm btn-outline btn-danger" id="resetAllDataBtn">Reset All Data</button>
+            </div>
+          </div>
+
+          <div class="profile-version-footer">
+            <span>DebugX v1.0.0 (Production Release)</span>
+            <span>Google Gemini Multimodal Developer Edition</span>
+          </div>
+        </section>
+
+      </div><!-- /.app-body -->
+
+      <!-- Android Bottom Navigation Bar -->
+      <nav class="android-bottom-nav">
+        <button class="nav-item active" data-screen="screenHome">
+          <div class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="nav-label">Home</span>
+        </button>
+
+        <button class="nav-item" data-screen="screenDebug">
+          <div class="nav-icon nav-icon-accent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="14" x="8" y="5" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/></svg>
+          </div>
+          <span class="nav-label">Debug</span>
+        </button>
+
+        <button class="nav-item" data-screen="screenHistory">
+          <div class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+          </div>
+          <span class="nav-label">History</span>
+        </button>
+
+        <button class="nav-item" data-screen="screenLearn">
+          <div class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+          </div>
+          <span class="nav-label">Learn</span>
+        </button>
+
+        <button class="nav-item" data-screen="screenProfile">
+          <div class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          </div>
+          <span class="nav-label">Profile</span>
+        </button>
+      </nav>
+
+      <!-- Android Gesture Navigation Bar Line -->
+      <div class="android-nav-pill"></div>
+
+    </div><!-- /#deviceFrame -->
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Notification Modal -->
+  <div class="modal-backdrop" id="notificationsModal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Notifications</h3>
+        <button class="btn-icon-subtle" id="closeNotificationsBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="notification-item unread">
+          <div class="notif-dot"></div>
+          <div>
+            <div class="notif-title">DebugX v1.0 Ready</div>
+            <div class="notif-desc">Gemini 1.5 Flash multimodal debugging engine online.</div>
+            <div class="notif-time">Just now</div>
+          </div>
+        </div>
+        <div class="notification-item">
+          <div>
+            <div class="notif-title">Native Android APK Project Added</div>
+            <div class="notif-desc">Complete Kotlin & Jetpack Compose files in /android directory.</div>
+            <div class="notif-time">10m ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/sampleData.js"></script>
+  <script src="js/gemini.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/learn.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

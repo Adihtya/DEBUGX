@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">DebugX</string>
+    <string name="tagline">Find the Bug. Understand the Cause. Fix with Confidence.</string>
+    <string name="ready_to_squash">Ready to squash some bugs?</string>
+    <string name="what_debugging_today">What are we debugging today?</string>
+    <string name="start_debugging">Start Debugging</string>
+    <string name="analyse_my_code">Analyse My Code</string>
+</resources>

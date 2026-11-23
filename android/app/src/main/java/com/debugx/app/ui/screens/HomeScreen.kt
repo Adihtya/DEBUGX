@@ -1,0 +1,334 @@
+package com.debugx.app.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.debugx.app.data.model.SampleData
+import com.debugx.app.ui.components.SeverityBadge
+import com.debugx.app.ui.theme.*
+import com.debugx.app.viewmodel.DebugViewModel
+
+@Composable
+fun HomeScreen(
+    viewModel: DebugViewModel,
+    onNavigateToDebug: () -> Unit,
+    onNavigateToResults: () -> Unit
+) {
+    val history by viewModel.history.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgPrimary)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
+    ) {
+        // Header
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(AccentPrimary, AccentSecondary))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("DX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Column {
+                        Text("Ready to squash some bugs?", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("DebugX Developer Tool", color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // Hero Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = BgCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderAccent)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        color = Color(0x268B5CF6),
+                        shape = CircleShape,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x408B5CF6))
+                    ) {
+                        Text(
+                            text = "✨ Gemini 1.5 Multimodal Engine",
+                            color = Color(0xFFDDD6FE),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "What are we debugging today?",
+                        color = TextPrimary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        lineHeight = 26.sp
+                    )
+
+                    Text(
+                        text = "Upload error screenshots or paste source code. Get senior-engineer root cause analysis and verified fixes.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Button(
+                            onClick = onNavigateToDebug,
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Start Debugging", fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.loadSection18Sample()
+                                onNavigateToResults()
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Try Sample Bug", color = TextPrimary)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Quick Actions
+        item {
+            Text("Quick Actions", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickActionCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Upload Screenshot",
+                    subtitle = "OCR traces",
+                    icon = Icons.Default.Image,
+                    color = AccentSecondary,
+                    onClick = onNavigateToDebug
+                )
+                QuickActionCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Paste Code",
+                    subtitle = "15+ languages",
+                    icon = Icons.Default.Code,
+                    color = AccentPrimary,
+                    onClick = onNavigateToDebug
+                )
+            }
+        }
+
+        // Metrics Grid
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricWidget(
+                    modifier = Modifier.weight(1f),
+                    label = "ERRORS ANALYSED",
+                    value = "128",
+                    sub = "+18% this week",
+                    subColor = ColorSuccess
+                )
+                MetricWidget(
+                    modifier = Modifier.weight(1f),
+                    label = "BUGS FIXED",
+                    value = "126",
+                    sub = "98.4% resolution",
+                    subColor = AccentSecondary
+                )
+            }
+        }
+
+        // Tip of the Day
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF191B28)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x4DF59E0B))
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "💡 SENIOR ENGINEER DEBUGGING TIP",
+                        color = Color(0xFFFBBF24),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Isolate with Binary Search Debugging",
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "When diagnosing an unexpected state in a 1,000-line module, divide your code in half with a log. You can pinpoint the exact line in fewer than 10 iterations.",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+
+        // Recent Activity
+        item {
+            Text("Recent Activity", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        }
+
+        items(history.take(3)) { item ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.selectHistoryItem(item, onNavigateToResults)
+                    },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = BgCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(item.language, color = AccentSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("•", color = TextMuted)
+                            Text(item.timestamp, color = TextMuted, fontSize = 11.sp)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = item.errorTitle,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            maxLines = 1
+                        )
+                    }
+                    SeverityBadge(severity = item.severity)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickActionCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            }
+            Text(title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(subtitle, color = TextMuted, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
+fun MetricWidget(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    sub: String,
+    subColor: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(label, color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Text(sub, color = subColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}

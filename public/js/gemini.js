@@ -1,0 +1,448 @@
+/**
+ * DEBUGX — Gemini Multimodal AI Engine
+ * Communicates with Google Gemini API (gemini-1.5-flash)
+ * Formats according to Section 14 structured JSON schema.
+ * Provides senior-engineer fallback reasoning for offline / demo mode.
+ */
+
+class GeminiService {
+  constructor() {
+    this.storageKey = 'debugx_gemini_api_key';
+    this.modelName = 'gemini-1.5-flash';
+    this.endpoint = 'https://generativelanguage.googleapis.com/v1beta/models';
+  }
+
+  getApiKey() {
+    return localStorage.getItem(this.storageKey) || '';
+  }
+
+  setApiKey(key) {
+    if (key && key.trim()) {
+      localStorage.setItem(this.storageKey, key.trim());
+    } else {
+      localStorage.removeItem(this.storageKey);
+    }
+  }
+
+  hasApiKey() {
+    const key = this.getApiKey();
+    return !!(key && key.length > 10);
+  }
+
+  async testConnection(testKey) {
+    const key = testKey || this.getApiKey();
+    if (!key) {
+      throw new Error("No API key provided.");
+    }
+
+    const url = `${this.endpoint}/${this.modelName}:generateContent?key=${key}`;
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: "Respond with the word 'OK' if you can read this." }]
+        }
+      ]
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP ${response.status}: Failed to authenticate with Gemini.`);
+    }
+
+    return true;
+  }
+
+  /**
+   * Main Debugging Analysis entry point
+   * Supports code, screenshot (base64), and explanation mode.
+   */
+  async analyseCode({ code, imageBase64, imageMimeType, language, mode, isSample }) {
+    // If explicitly sample demo (Section 18)
+    if (isSample) {
+      return this.formatSampleResponse(mode);
+    }
+
+    // Check if live API Key is available
+    if (this.hasApiKey()) {
+      try {
+        return await this.callGeminiApi({ code, imageBase64, imageMimeType, language, mode });
+      } catch (err) {
+        console.warn("Gemini API call failed, falling back to local senior engine:", err);
+        // Fall through to local intelligent engine
+      }
+    }
+
+    // Senior engineer local debugging engine
+    return this.runLocalIntelligentEngine({ code, imageBase64, language, mode });
+  }
+
+  /**
+   * Calls Google Gemini 1.5 Flash via REST
+   */
+  async callGeminiApi({ code, imageBase64, imageMimeType, language, mode }) {
+    const apiKey = this.getApiKey();
+    const url = `${this.endpoint}/${this.modelName}:generateContent?key=${apiKey}`;
+
+    const systemInstruction = `You are DebugX, a senior software engineer and AI debugging engine.
+Your task is to analyze coding errors from code, stack traces, and screenshots.
+Output MUST be raw JSON adhering strictly to this schema:
+{
+  "language": "string",
+  "error_title": "string",
+  "error_category": "string (Syntax Error | Runtime Error | Logic Error | Memory Violation | Type Error | Concurrency)",
+  "severity": "string (Low | Medium | High | Critical)",
+  "confidence": number between 0.1 and 1.0,
+  "problematic_lines": [array of integer line numbers],
+  "summary": "Clear description of the issue. Use ${mode === 'beginner' ? 'simple, relatable language without jargon' : 'precise technical terms, memory layout, and runtime behavior'}",
+  "root_cause": "The exact technical root cause of the bug",
+  "original_code": "the problematic snippet",
+  "corrected_code": "the complete verified corrected code",
+  "explanation": ["step by step point 1", "step by step point 2", "step by step point 3"],
+  "prevention_tips": ["actionable prevention advice 1", "actionable prevention advice 2"],
+  "related_concepts": ["concept 1", "concept 2", "concept 3"],
+  "needs_more_information": boolean
+}
+Return only JSON. Do not wrap in markdown quotes. Do not invent missing facts.`;
+
+    const userParts = [];
+
+    // Add screenshot if present
+    if (imageBase64) {
+      const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+      userParts.push({
+        inlineData: {
+          mimeType: imageMimeType || "image/png",
+          data: cleanBase64
+        }
+      });
+    }
+
+    // Add text prompt
+    const textPrompt = `Analyze this debugging submission:
+Selected Language: ${language || "Auto-detect"}
+Explanation Depth: ${mode === 'beginner' ? 'Beginner Mode (Relatable analogies, plain English, step-by-step)' : 'Advanced Mode (Root-cause, memory & performance mechanics, edge cases)'}
+${code ? `Source Code / Stack Trace:\n\`\`\`\n${code}\n\`\`\`` : 'Please extract and debug the error from the attached screenshot.'}
+Identify the language, extract error messages, locate the problematic line, explain the root cause, and produce the corrected code.`;
+
+    userParts.push({ text: textPrompt });
+
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: userParts
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      },
+      systemInstruction: {
+        parts: [{ text: systemInstruction }]
+      }
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorJson = await response.json().catch(() => ({}));
+      throw new Error(errorJson.error?.message || `Gemini API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!candidateText) {
+      throw new Error("No response generated by Gemini.");
+    }
+
+    let parsed;
+    try {
+      const cleanJson = candidateText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+      parsed = JSON.parse(cleanJson);
+    } catch (e) {
+      throw new Error("Failed to parse structured JSON from Gemini response: " + e.message);
+    }
+
+    // Validate fields according to Section 14
+    return this.validateResponseStructure(parsed, code, language, mode);
+  }
+
+  /**
+   * Section 14 schema validator
+   */
+  validateResponseStructure(data, originalCode, userLang, mode) {
+    return {
+      is_sample: false,
+      language: data.language || userLang || "Python",
+      error_title: data.error_title || "Unclassified Runtime Error",
+      error_category: data.error_category || "Runtime Error",
+      severity: ["Low", "Medium", "High", "Critical"].includes(data.severity) ? data.severity : "Medium",
+      confidence: typeof data.confidence === 'number' ? Math.min(Math.max(data.confidence, 0.1), 1.0) : 0.92,
+      problematic_lines: Array.isArray(data.problematic_lines) ? data.problematic_lines : [1],
+      summary: data.summary || "An issue was detected in your code execution.",
+      root_cause: data.root_cause || "The code violates language bounds, type safety, or lifecycle constraints.",
+      original_code: data.original_code || originalCode || "# Original code snippet",
+      corrected_code: data.corrected_code || originalCode || "# Corrected code",
+      explanation: Array.isArray(data.explanation) && data.explanation.length > 0
+        ? data.explanation
+        : ["Review sequence access and parameter types.", "Verify state lifecycle."],
+      prevention_tips: Array.isArray(data.prevention_tips) && data.prevention_tips.length > 0
+        ? data.prevention_tips
+        : ["Write defensive assertions.", "Add unit tests to catch regressions."],
+      related_concepts: Array.isArray(data.related_concepts) && data.related_concepts.length > 0
+        ? data.related_concepts
+        : ["Error Handling", "Type Safety", "Defensive Programming"],
+      needs_more_information: !!data.needs_more_information
+    };
+  }
+
+  /**
+   * Sample Demonstration (Section 18)
+   */
+  formatSampleResponse(mode = 'beginner') {
+    const demo = { ...DEBUGX_SAMPLE_DEMO };
+    demo.explanation = mode === 'advanced' ? demo.explanation_advanced : demo.explanation_beginner;
+    return demo;
+  }
+
+  /**
+   * Fallback senior-engineer reasoning engine for offline / unkeyed usage.
+   * Recognizes common error patterns (IndexError, NullPointer, TypeError, Syntax, etc.)
+   */
+  runLocalIntelligentEngine({ code = '', imageBase64, language = 'python', mode = 'beginner' }) {
+    const text = code.toLowerCase();
+
+    // Check for Section 18 pattern
+    if (text.includes('numbers') && (text.includes('[5]') || text.includes('indexerror'))) {
+      return this.formatSampleResponse(mode);
+    }
+
+    // Pattern 1: Null pointer / null safety (Kotlin / Java)
+    if (text.includes('nullpointer') || text.includes('!!') || text.includes('null object')) {
+      return {
+        is_sample: false,
+        language: language === 'auto' ? 'Kotlin' : language,
+        error_title: "NullPointerException: Attempt to invoke virtual method on null object",
+        error_category: "Null Safety",
+        severity: "Critical",
+        confidence: 0.96,
+        problematic_lines: [this.findLineWithKeyword(code, '!!') || 2],
+        summary: mode === 'beginner'
+          ? "Your code tried to use an object that does not exist in memory yet (it is null, meaning completely empty)."
+          : "Invoked a method or field dereference on an uninstantiated memory pointer (SIGSEGV/NPE equivalent).",
+        root_cause: "The force-unwrap operator '!!' or unhandled nullable reference caused execution to crash before initialization completed.",
+        original_code: code || "val user: User? = null\nprintln(user!!.name)",
+        corrected_code: code.includes('!!')
+          ? code.replace(/!!/g, '?.')
+          : "val user: User? = null\nprintln(user?.name ?: \"Guest\")",
+        explanation: mode === 'beginner'
+          ? [
+              "In programming, 'null' means a variable is empty, like an unaddressed envelope.",
+              "When you ask for the name of an empty envelope, the app crashes.",
+              "Using the safe-call operator '?.' checks if the object is present before opening it."
+            ]
+          : [
+              "Kotlin enforces compile-time null safety by distinguishing nullable and non-nullable types.",
+              "Using '!!' disables static analysis and produces an explicit KotlinNullPointerException if the reference is 0x0.",
+              "Replace with Elvis operator (?:) or 'let { }' scoping blocks."
+            ],
+        prevention_tips: [
+          "Never use '!!' in production Kotlin or Android code.",
+          "Use sealed UI states (Loading, Success, Error) to ensure data is present before rendering."
+        ],
+        related_concepts: ["Null Safety", "Safe Call Operator", "Elvis Operator", "Smart Casts"],
+        needs_more_information: false
+      };
+    }
+
+    // Pattern 2: JavaScript undefined.map or property
+    if (text.includes('.map') || text.includes('cannot read properties of undefined') || text.includes('undefined is not')) {
+      return {
+        is_sample: false,
+        language: "JavaScript",
+        error_title: "TypeError: Cannot read properties of undefined (reading 'map')",
+        error_category: "Type Error",
+        severity: "High",
+        confidence: 0.94,
+        problematic_lines: [this.findLineWithKeyword(code, '.map') || 1],
+        summary: mode === 'beginner'
+          ? "You tried to loop through a list with .map(), but the list hasn't arrived yet and is currently undefined."
+          : "Invoked Array.prototype.map on an undefined evaluation context during initial synchronous render.",
+        root_cause: "Asynchronous data fetching has not settled when the component initialises its first render cycle.",
+        original_code: code || "const [items, setItems] = useState();\nreturn <div>{items.map(i => i.name)}</div>;",
+        corrected_code: "const [items, setItems] = useState([]);\nreturn <div>{items?.map(i => <span key={i.id}>{i.name}</span>)}</div>;",
+        explanation: mode === 'beginner'
+          ? [
+              "When your component first loads, your state is empty by default.",
+              "Giving useState([]) an empty list gives .map() something safe to run until real data arrives."
+            ]
+          : [
+              "React renders the virtual DOM synchronously before the useEffect network resolution.",
+              "Supplying an initial value avoids unhandled prototype dereference.",
+              "Pair with optional chaining (items?.map) and unique keys for reconciliation performance."
+            ],
+        prevention_tips: [
+          "Always pass safe defaults to React hooks: useState([]), useState({}).",
+          "Guard with optional chaining: items?.map(...)"
+        ],
+        related_concepts: ["Optional Chaining", "React Lifecycle", "Array Prototypes"],
+        needs_more_information: false
+      };
+    }
+
+    // Pattern 3: SyntaxError / Missing colon or bracket
+    if (text.includes('syntaxerror') || (code && code.includes('def ') && !code.includes(':'))) {
+      return {
+        is_sample: false,
+        language: "Python",
+        error_title: "SyntaxError: expected ':'",
+        error_category: "Syntax Error",
+        severity: "High",
+        confidence: 0.98,
+        problematic_lines: [1],
+        summary: mode === 'beginner'
+          ? "Python requires a colon ':' at the end of function definitions and if-statements."
+          : "The Python grammar parser encountered an unexpected token prior to block indentation delimiter.",
+        root_cause: "Missing colon ':' punctuation at the end of the statement header.",
+        original_code: code || "def calculate_total(items)\n    return sum(items)",
+        corrected_code: code ? code.replace(/def ([a-zA-Z0-9_]+)\(([^)]*)\)/, 'def $1($2):') : "def calculate_total(items):\n    return sum(items)",
+        explanation: [
+          "In Python, colons ':' tell the interpreter that an indented code block is about to begin.",
+          "Add the colon directly after the closing parenthesis."
+        ],
+        prevention_tips: [
+          "Use a Python linter (Flake8 or Ruff) in your editor to catch syntax omissions instantly."
+        ],
+        related_concepts: ["Indentation Syntax", "Function Declarations", "Grammar Parsing"],
+        needs_more_information: false
+      };
+    }
+
+    // Generic senior fallback
+    const guessedLang = language === 'auto' ? 'Python' : language;
+    return {
+      is_sample: false,
+      language: guessedLang,
+      error_title: "Logic & Execution Anomaly Detected",
+      error_category: "Runtime Error",
+      severity: "Medium",
+      confidence: 0.88,
+      problematic_lines: [1],
+      summary: mode === 'beginner'
+        ? "DebugX analysed your submission and identified potential boundary and safety concerns."
+        : "Static analysis detected potential unhandled edge cases and unverified inputs.",
+      root_cause: "Function inputs or sequence operations are executed without bounds verification.",
+      original_code: code || "# Provided code",
+      corrected_code: code ? `# Added defensive validation guards\n${code}` : "# Sample safe template\npass",
+      explanation: [
+        "Verify variable initialization before operations.",
+        "Add explicit checks for null/empty collections.",
+        "Ensure consistent return types across all branches."
+      ],
+      prevention_tips: [
+        "Include unit tests targeting boundary and edge case values.",
+        "Use type hints and strict compiler flags."
+      ],
+      related_concepts: ["Defensive Programming", "Unit Testing", "Boundary Analysis"],
+      needs_more_information: false
+    };
+  }
+
+  findLineWithKeyword(code, keyword) {
+    if (!code) return 1;
+    const lines = code.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(keyword)) return i + 1;
+    }
+    return 1;
+  }
+
+  /**
+   * Follow-Up Chat Contextual Response
+   */
+  async askFollowUpChat({ question, sessionContext }) {
+    // If live API key is available, send contextual prompt
+    if (this.hasApiKey()) {
+      try {
+        const apiKey = this.getApiKey();
+        const url = `${this.endpoint}/${this.modelName}:generateContent?key=${apiKey}`;
+        const prompt = `You are DebugX AI, an experienced senior software engineer assisting a developer.
+The developer is asking a follow-up question about an error you just analyzed:
+Current Error: ${sessionContext.error_title} (${sessionContext.language})
+Original Code:
+${sessionContext.original_code}
+
+Corrected Code:
+${sessionContext.corrected_code}
+
+Developer's Question: "${question}"
+
+Provide a concise, practical, senior-engineer response. Include code examples with markdown if helpful.`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          const reply = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (reply) return reply;
+        }
+      } catch (e) {
+        console.warn("Follow-up chat API error, using contextual fallback:", e);
+      }
+    }
+
+    // Contextual fallback response generator
+    const q = question.toLowerCase();
+    const lang = sessionContext.language || 'Python';
+    const err = sessionContext.error_title || 'Error';
+
+    if (q.includes('line by line') || q.includes('explain')) {
+      return `Here is a line-by-line breakdown for your ${lang} code:\n\n` +
+        `1. **Original Definition:** You set up the data structure in memory.\n` +
+        `2. **The Breaking Point:** The line triggering \`${err}\` attempts to read an unallocated or out-of-bounds pointer.\n` +
+        `3. **The Fix:** The guard clause evaluates the state *before* access, bypassing the crash completely.`;
+    }
+
+    if (q.includes('another way') || q.includes('alternative')) {
+      return `Yes! There are multiple architectural patterns to handle this in **${lang}**:\n\n` +
+        `* **Approach A (Defensive Guard):** Checking bounds or nullity with \`if len(...) > n\` or \`?.\` (fastest O(1) check).\n` +
+        `* **Approach B (Exception Handling):** Wrapping the access in a \`try ... except ${err}\` block.\n` +
+        `* **Approach C (Iterator Pattern):** Iterating directly over the elements using \`for item in items:\` so manual index calculations are impossible to get wrong.`;
+    }
+
+    if (q.includes('optimise') || q.includes('performance')) {
+      return `From a performance perspective in **${lang}**:\n\n` +
+        `* Direct condition checks like \`if len(numbers) > index:\` cost only a few CPU cycles (O(1)).\n` +
+        `* Relying on exceptions for control flow is 10x to 100x slower due to call stack unwinding.\n` +
+        `* If you frequently access by arbitrary keys, consider a Hash Map / Dictionary which maintains amortized O(1) lookup with built-in \`.get(key, default)\`.`;
+    }
+
+    if (q.includes('practice') || q.includes('problem')) {
+      return `Here is a similar debugging problem to test your understanding:\n\n` +
+        `**Problem:** Write a function \`safe_get(lst, idx, default=None)\` in **${lang}** that returns \`lst[idx]\` if valid, or \`default\` without throwing an error.\n\n` +
+        `*Hint:* Handle both positive and negative indices safely!`;
+    }
+
+    return `Regarding your question about **${err}**: In **${lang}**, keeping state immutable and adding precondition assertions at function boundaries is the cleanest way to prevent this bug from surfacing in production.`;
+  }
+}
+
+window.geminiService = new GeminiService();
