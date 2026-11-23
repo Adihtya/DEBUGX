@@ -209,7 +209,7 @@ fun HomeScreen(
                     }
 
                     Icon(
-                        Icons.Default.ArrowForward,
+                        Icons.Default.PlayArrow,
                         contentDescription = null,
                         tint = Color(0xFF7957FF),
                         modifier = Modifier.size(20.dp)

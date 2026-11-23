@@ -1,248 +1,236 @@
-&#x20;\<div align="center">
+<div align="center">
 
-\<h1>
-&#x20; \<span style="color:#A78BFA;">DEBUG\</span>\<span style="color:#38BDF8;">X\</span>
-\</h1>
+# <span style="color:#A78BFA;">DEBUG</span><span style="color:#38BDF8;">X</span>
 
-\<h3>AI-POWERED DEBUGGING & CODE INTELLIGENCE\</h3>
+### AI-POWERED DEBUGGING & CODE INTELLIGENCE
 
-\<p>\<strong>Find the Bug. Understand the Cause. Fix with Confidence.\</strong>\</p>
+**Find the Bug. Understand the Cause. Fix with Confidence.**
 
-\<p>
-&#x20; \<img src="[https://img.shields.io/badge/AI-Google%20Gemini-8B5CF6?style=for-the-badge](https://img.shields.io/badge/AI-Google%20Gemini-8B5CF6?style=for-the-badge)" />
-&#x20; \<img src="[https://img.shields.io/badge/Platform-Android%20%7C%20Web-38BDF8?style=for-the-badge](https://img.shields.io/badge/Platform-Android%20%7C%20Web-38BDF8?style=for-the-badge)" />
-&#x20; \<img src="[https://img.shields.io/badge/Status-In%20Development-F59E0B?style=for-the-badge](https://img.shields.io/badge/Status-In%20Development-F59E0B?style=for-the-badge)" />
-\</p>
+[![AI - Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-8B5CF6?style=for-the-badge&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
+[![Platform - Android & Web](https://img.shields.io/badge/Platform-Android%20%7C%20Web-38BDF8?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Adihtya/DEBUGX)
+[![Release - v1.2.0](https://img.shields.io/badge/Release-v1.2.0%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Adihtya/DEBUGX/releases/latest)
+[![Kotlin - Jetpack Compose](https://img.shields.io/badge/Android-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Node.js Server](https://img.shields.io/badge/Web-Node.js%20%2B%20Vanilla%20JS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
-\<p>
-&#x20; \<a href="[https://github.com/Adihtya/DEBUGX](https://github.com/Adihtya/DEBUGX)">GitHub Repository\</a>
-&#x20; &nbsp; • &nbsp;
-&#x20; \<a href="#features">Features\</a>
-&#x20; &nbsp; • &nbsp;
-&#x20; \<a href="#installation">Installation\</a>
-&#x20; &nbsp; • &nbsp;
-&#x20; \<a href="#roadmap">Roadmap\</a>
-\</p>
+<br/>
 
-\<img src="[https://capsule-render.vercel.app/api?type=rect&color=0:090B10,50:241747,100:090B10&height=3](https://capsule-render.vercel.app/api?type=rect\&color=0:090B10,50:241747,100:090B10\&height=3)" width="100%" />
+[📱 **Download Android APK (v1.2.0)**](https://github.com/Adihtya/DEBUGX/releases/download/v1.2.0/app-debug.apk) &nbsp; • &nbsp;
+[🌐 **Live Web App**](#-quick-start) &nbsp; • &nbsp;
+[✨ **Features**](#-features) &nbsp; • &nbsp;
+[🧠 **Explain My Code**](#-feature-spotlight-explain-my-code) &nbsp; • &nbsp;
+[🚀 **Installation**](#-installation--build)
 
-\</div>
+<br/>
 
-\<h2 id="about">01. About DEBUGX\</h2>
+<img src="https://capsule-render.vercel.app/api?type=rect&color=0:090B10,50:241747,100:090B10&height=3" width="100%" />
 
-\<p> \<strong>DEBUGX\</strong> is an AI-powered debugging and code-learning assistant designed to help developers identify programming errors, understand their root causes, and improve their problem-solving abilities. \</p>
+</div>
 
-\<p> Debugging shouldn't be about blindly copying solutions from AI. Developers should understand what went wrong, why it happened, and how to prevent it from happening again. \</p>
+## 01. About DEBUGX
 
-\<blockquote>
-&#x20; \<strong>Don't just fix the bug. Understand it.\</strong>
-\</blockquote>
+**DEBUGX** is an AI-powered code analysis and debugging assistant crafted for developers, students, and engineers. It doesn't just hand you a patch—it demystifies what went wrong, explains the execution mechanics, and guides you to write resilient, clean code.
 
-\<h2 id="features">02. Features\</h2>
+> **"Don't just fix the bug. Understand it."**
 
-\<table width="100%">
-\<tr>
-\<td width="50%" valign="top">
-\<h3>🐛 AI Code Debugger\</h3>
-\<ul>
-\<li>Analyse submitted source code.\</li>
-\<li>Identify potential programming errors.\</li>
-\<li>Understand root causes.\</li>
-\<li>Generate corrected code suggestions.\</li>
-\<li>Explain suggested solutions.\</li>
-\</ul>
-\</td>
-\<td width="50%" valign="top">
-\<h3>📸 Snap & Debug\</h3>
-\<ul>
-\<li>Capture screenshots using the camera.\</li>
-\<li>Upload screenshots.\</li>
-\<li>Analyse compiler errors.\</li>
-\<li>Understand terminal errors.\</li>
-\<li>Analyse stack traces.\</li>
-\</ul>
-\</td>
-\</tr>
-\<tr>
-\<td width="50%" valign="top">
-\<h3>🧠 Explain My Code\</h3>
-\<p>\<strong>Planned Feature\</strong>\</p>
-\<ul>
-\<li>Line-by-line explanations.\</li>
-\<li>Variable identification.\</li>
-\<li>Loop visualisation.\</li>
-\<li>Function execution flow.\</li>
-\<li>Complexity analysis.\</li>
-\</ul>
-\</td>
-\<td width="50%" valign="top">
-\<h3>💬 AI Follow-up Chat\</h3>
-\<ul>
-\<li>Ask questions about debugging results.\</li>
-\<li>Explore root causes.\</li>
-\<li>Request alternative solutions.\</li>
-\<li>Understand programming concepts.\</li>
-\</ul>
-\</td>
-\</tr>
-\<tr>
-\<td width="50%" valign="top">
-\<h3>📚 Learning Centre\</h3>
-\<ul>
-\<li>Programming error references.\</li>
-\<li>Language-based error categories.\</li>
-\<li>Interactive bug challenges.\</li>
-\<li>Practice quizzes.\</li>
-\</ul>
-\</td>
-\<td width="50%" valign="top">
-\<h3>📂 Debugging History\</h3>
-\<ul>
-\<li>Previous debugging sessions.\</li>
-\<li>Search and filtering.\</li>
-\<li>Session management.\</li>
-\<li>JSON history export.\</li>
-\</ul>
-\</td>
-\</tr>
-\</table>
+Whether you are debugging compiler errors on your laptop screen via your smartphone camera, pasting broken algorithms into the interactive web workbench, or stepping through loop iterations line-by-line, DebugX provides the clarity you need.
 
-\<h2 id="workflow">03. How It Works\</h2>
+---
 
-\<table width="100%"> \<tr> \<td align="center"> \<h1>01\</h1> \<strong>INPUT\</strong> \<p>Submit code or an error screenshot.\</p> \</td> \<td align="center"> \<h1>02\</h1> \<strong>ANALYSE\</strong> \<p>AI examines the submitted information.\</p> \</td> \<td align="center"> \<h1>03\</h1> \<strong>UNDERSTAND\</strong> \<p>Explore the root cause and solution.\</p> \</td> \<td align="center"> \<h1>04\</h1> \<strong>IMPROVE\</strong> \<p>Learn and improve your coding skills.\</p> \</td> \</tr> \</table>
+## 02. Features
 
-\<h2 id="technology">04. Technology Stack\</h2>
+<table>
+<tr>
+<td width="50%" valign="top">
 
-\<table width="100%">
-\<tr>\<th>Technology\</th>\<th>Purpose\</th>\</tr>
-\<tr>\<td>Kotlin\</td>\<td>Native Android development\</td>\</tr>
-\<tr>\<td>Jetpack Compose\</td>\<td>Android UI\</td>\</tr>
-\<tr>\<td>Material 3\</td>\<td>Design system\</td>\</tr>
-\<tr>\<td>Google Gemini API\</td>\<td>AI-powered analysis\</td>\</tr>
-\<tr>\<td>ViewModel & StateFlow\</td>\<td>State management\</td>\</tr>
-\<tr>\<td>Kotlin Coroutines\</td>\<td>Asynchronous operations\</td>\</tr>
-\<tr>\<td>Node.js\</td>\<td>Web preview server\</td>\</tr>
-\<tr>\<td>HTML, CSS, JavaScript\</td>\<td>Web interface\</td>\</tr>
-\<tr>\<td>Gradle\</td>\<td>Android build automation\</td>\</tr>
-\</table>
+### 🧠 Explain My Code *(v1.2.0)*
+- **Interactive Line-by-Line Breakdown**: Click any code line to inspect its purpose and runtime role.
+- **Variable Tracking & Scopes**: Automatic detection of data types, scopes, declarations, and usages.
+- **Loop & Function Visualizers**: Step-by-step iteration state table and call stack frame hierarchy.
+- **Complexity Analysis**: Big-O time and space complexity with clear mathematical rationale.
+- **Honest AI Output Prediction**: Clear demarcation between statically deduced output and sandbox runtime.
+- **Dual Explanation Modes**: *Beginner Mode* (plain English & analogies) or *Advanced Mode* (AST, memory & performance).
 
-\<h2 id="installation">05. Installation\</h2>
+</td>
+<td width="50%" valign="top">
 
-\<h3>Prerequisites\</h3>
-\<ul>
-\<li>Node.js\</li>
-\<li>Git\</li>
-\<li>Android Studio (for Android development)\</li>
-\<li>JDK 17 or 21\</li>
-\<li>Android SDK\</li>
-\</ul>
+### 📸 Live Camera & Snap-to-Debug *(v1.1.0)*
+- **Hardware CameraX Integration**: Native Android camera viewfinder with front/rear lens toggle.
+- **Physical Screen Capture**: Snap code and stack traces directly off laptop monitors or terminal screens.
+- **Web Browser Camera**: HTML5 `getUserMedia` camera preview with instant retake and capture controls.
+- **Multimodal Gemini Vision**: Simultaneous OCR, syntax parsing, and error extraction.
+- **Hybrid Input**: Combine captured camera photos with pasted code for complete context.
 
-\<h3>Clone Repository\</h3>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-\<pre>\<code>git clone [https://github.com/Adihtya/DEBUGX.git](https://github.com/Adihtya/DEBUGX.git)
-cd DEBUGX\</code>\</pre>
+### 🐛 AI Code Debugger
+- **Deep Root Cause Diagnosis**: Pinpoint syntax, logical, and runtime bugs.
+- **Ready-to-Use Code Patches**: Side-by-side original vs. corrected code diffs.
+- **Actionable Explanations**: Clear bullet points explaining why the error occurred.
+- **Multi-language Support**: Python, JavaScript, Java, C++, Kotlin, Go, Rust, TypeScript, and more.
 
-\<h3>Install Dependencies\</h3>
+</td>
+<td width="50%" valign="top">
 
-\<pre>\<code>npm install\</code>\</pre>
+### 💬 Interactive AI Follow-up Chat
+- **Context-Aware Dialogue**: Ask questions directly referencing the analyzed code.
+- **Alternative Approaches**: Request alternate algorithms or optimized patterns.
+- **Concept Deep-Dives**: Ask about language idioms, memory safety, or edge cases.
 
-\<h3>Start Web Application\</h3>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-\<pre>\<code>npm start\</code>\</pre>
+### 📚 Learning Centre
+- **Categorized Error Knowledge Base**: Common pitfalls across JavaScript, Python, C++, and Java.
+- **Interactive Bug Challenges**: Real-world buggy snippets to test your diagnostic skills.
+- **Practice Quizzes**: Instant feedback on debugging logic and compiler mechanics.
 
-\<p>Alternatively:\</p>
+</td>
+<td width="50%" valign="top">
 
-\<pre>\<code>node server.js\</code>\</pre>
+### 📂 History & Session Management
+- **Local Offline Persistence**: All debugging and explanation sessions cached locally.
+- **Instant Search & Filter**: Search past sessions by code snippet, language, or error keyword.
+- **Export to JSON**: Download session histories for documentation or team sharing.
 
-\<p>Open \<code>[http://localhost:3000](http://localhost:3000)\</code> in your browser.\</p>
+</td>
+</tr>
+</table>
 
-\<h2 id="android">06. Build Android APK\</h2>
+---
 
-\<h3>Using Android Studio\</h3>
-\<ol>
-\<li>Open Android Studio.\</li>
-\<li>Open the \<code>android/\</code> project directory.\</li>
-\<li>Allow Gradle synchronisation.\</li>
-\<li>Navigate to Build → Build Bundle(s) / APK(s).\</li>
-\<li>Select Build APK(s).\</li>
-\</ol>
+## 03. Feature Spotlight: Explain My Code
 
-\<h3>Using Terminal\</h3>
+DebugX v1.2.0 introduces **Explain My Code**—an interactive code intelligence engine designed to make complex algorithms crystal clear.
 
-\<pre>\<code>cd android
+```
+┌─────────────────────────────────┬─────────────────────────────────┐
+│     Interactive Code Editor     │    Synchronized Explanation     │
+│                                 │                                 │
+│  1  def binary_search(arr, x):  │  Line 1: Function Definition   │
+│  2      low = 0                 │  Initializes search boundary.   │
+│  3      high = len(arr) - 1     │                                 │
+│  4      while low <= high:  ───►│  Selected: While Loop           │
+│  5          mid = (low+high)//2 │  Repeats while search space > 0 │
+└─────────────────────────────────┴─────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                      Execution & Visualizers                      │
+│  [Variables]  low (int), high (int), mid (int)                    │
+│  [Loop Trace] Iteration 1: low=0, high=5, mid=2, arr[mid]=7      │
+│  [Complexity] Time: O(log n)  |  Space: O(1)                      │
+│  [Prediction] Statically deduced: returns index 3                 │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### Key Capabilities:
+1. **Interactive Line Sync**: Tapping any line in the code editor highlights its corresponding explanation card, and vice-versa.
+2. **Variable Intelligence**: Inspect variable lifecycle, assignments, and mutations across scopes.
+3. **Loop & Function Visualizer**: View iteration-by-iteration state changes and function call hierarchies.
+4. **Honest Output Notice**: DebugX explicitly flags whether output was statically derived via AI AST analysis or measured in a secure sandbox execution environment.
+
+---
+
+## 04. Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Android Application** | Kotlin, Jetpack Compose, Material 3, CameraX, Kotlin Coroutines, StateFlow, ViewModel |
+| **Web Application** | HTML5, CSS3 (Modern Dark Theme `#090909`), JavaScript (ES2022), Express.js (Node.js) |
+| **Artificial Intelligence** | Google Gemini 1.5 Flash (`google-generativeai` SDK), Multimodal Vision API |
+| **CI / CD Automation** | GitHub Actions, Gradle Wrapper, Automated APK Artifact & Release Pipeline |
+
+---
+
+## 05. Quick Start
+
+### 📱 Android Application (Direct APK Install)
+
+1. Download the latest debug APK from the releases page:
+   **[Download DebugX v1.2.0 APK](https://github.com/Adihtya/DEBUGX/releases/download/v1.2.0/app-debug.apk)**
+2. On your Android device, allow installation from unknown sources if prompted.
+3. Open DebugX and start debugging!
+
+---
+
+### 🌐 Web Prototype (Local Server)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Adihtya/DEBUGX.git
+   cd DEBUGX
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the web server:**
+   ```bash
+   npm start
+   ```
+
+4. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+---
+
+### 🛠️ Building Android APK from Source
+
+```bash
+cd android
 chmod +x gradlew
-./gradlew assembleDebug\</code>\</pre>
+./gradlew :app:assembleDebug --stacktrace
+```
 
-\<h3>APK Output\</h3>
+The compiled APK will be generated at:
+```
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-\<pre>\<code>android/app/build/outputs/apk/debug/app-debug.apk\</code>\</pre>
+---
 
-\<h2 id="ai">07. Google Gemini Integration\</h2>
+## 06. Google Gemini API Configuration
 
-\<p>
-DEBUGX uses Google's Gemini API for AI-assisted debugging.
-\</p>
+DebugX includes built-in offline mock fallbacks for all features, so you can explore the UI immediately. To connect live Gemini AI analysis:
 
-\<ol>
-\<li>Obtain an API key from Google AI Studio.\</li>
-\<li>Open DEBUGX.\</li>
-\<li>Navigate to Profile or Settings.\</li>
-\<li>Enter your Gemini API key.\</li>
-\<li>Save the configuration.\</li>
-\</ol>
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
+2. In the DebugX Web App or Android App:
+   - Navigate to the **Profile / Settings** tab.
+   - Enter your Gemini API key in the input field.
+   - Click **Save Key**.
+3. All debugging, vision OCR, and code explanation requests will now use live Gemini 1.5 Flash models.
 
-\<p>\<strong>Security:\</strong> Never expose API keys in public repositories. Production applications should protect credentials through a secure backend.\</p>
+*(Your key is stored securely in your device's local storage and is never transmitted to any third-party servers).*
 
-\<h2 id="roadmap">08. Development Roadmap\</h2>
+---
 
-\<table width="100%">
-\<tr>\<th>Feature\</th>\<th>Status\</th>\</tr>
-\<tr>\<td>AI Code Debugging\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Screenshot-Based Debugging\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Camera Error Capture\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Beginner / Advanced Modes\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>AI Follow-up Chat\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Debugging History\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Learning Centre\</td>\<td>Core feature\</td>\</tr>
-\<tr>\<td>Explain My Code\</td>\<td>Planned\</td>\</tr>
-\<tr>\<td>Loop Visualisation\</td>\<td>Planned\</td>\</tr>
-\<tr>\<td>Variable Tracking\</td>\<td>Planned\</td>\</tr>
-\<tr>\<td>Execution Flow\</td>\<td>Planned\</td>\</tr>
-\<tr>\<td>Complexity Analysis\</td>\<td>Planned\</td>\</tr>
-\</table>
+## 07. Project Roadmap
 
-\<h2 id="contributing">09. Contributing\</h2>
+- [x] **v1.0.0**: Core AI Code Debugger, Error Classification, Fix Generator, Learning Centre, Offline History
+- [x] **v1.1.0**: Live Camera Capture (CameraX on Android, `getUserMedia` on Web), Screen Error Scanning, Image Upload
+- [x] **v1.2.0**: Feature 3: Explain My Code (Line-by-line sync, Loop/Function visualizers, Variable tracking, Complexity analysis, Ask AI)
+- [ ] **v1.3.0**: Sandboxed WASM / Piston in-browser code execution runtime
+- [ ] **v1.4.0**: IDE Extensions (VS Code & JetBrains plugins)
 
-\<p>Contributions, suggestions, and feedback are welcome.\</p>
+---
 
-\<ol>
-\<li>Fork this repository.\</li>
-\<li>Create a feature branch.\</li>
-\<li>Make your changes.\</li>
-\<li>Test your implementation.\</li>
-\<li>Submit a pull request.\</li>
-\</ol>
+## 08. Contributing & License
 
-\<h2 id="license">10. License\</h2>
+Contributions, feedback, and issue reports are warmly welcomed! Please feel free to open an issue or submit a Pull Request.
 
-\<p>Refer to the repository's LICENSE file for applicable licensing terms.\</p>
+Distributed under the MIT License. See `LICENSE` for details.
 
-\<hr/>
+<div align="center">
 
-\<div align="center">
+<br/>
 
-\<h1>
-\<span style="color:#A78BFA;">DEBUG\</span>\<span style="color:#38BDF8;">X\</span>
-\</h1>
+**Built with ❤️ by [Aditya Chaudhari](https://github.com/Adihtya)**
 
-\<h3>CODE SMARTER. DEBUG FASTER. LEARN DEEPER.\</h3>
+*DebugX — Code smarter. Debug faster. Learn deeper.*
 
-\<p>\<strong>Built by Aditya Chaudhari\</strong>\</p>
-
-\<a href="[https://github.com/Adihtya/DEBUGX](https://github.com/Adihtya/DEBUGX)">
-\<strong>EXPLORE DEBUGX ON GITHUB\</strong>
-\</a>
-
-\<p>\<sub>Made for developers who want to understand, not just copy and paste.\</sub>\</p>
-
-\</div>
+</div>
