@@ -76,7 +76,7 @@ fun ResultsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(color = ColorWarning, shape = RoundedCornerShape(4.dp)) {
-                            Text("SAMPLE", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(4.dp, 2.dp))
+                            Text("SAMPLE", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                         }
                         Text("Section 18 Python IndexError Sample Data.", color = Color(0xFFFCD34D), fontSize = 12.sp)
                     }
@@ -108,10 +108,10 @@ fun ResultsScreen(
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Surface(color = Color(0x268B5CF6), shape = RoundedCornerShape(4.dp)) {
-                                Text(result.errorCategory, color = Color(0xFFC4B5FD), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(6.dp, 2.dp))
+                                Text(result.errorCategory, color = Color(0xFFC4B5FD), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                             Surface(color = Color(0x2638BDF8), shape = RoundedCornerShape(4.dp)) {
-                                Text(result.language, color = AccentSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(6.dp, 2.dp))
+                                Text(result.language, color = AccentSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         }
                         SeverityBadge(severity = result.severity)

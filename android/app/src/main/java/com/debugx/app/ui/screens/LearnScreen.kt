@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -131,7 +132,7 @@ fun LearnScreen() {
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Surface(color = Color(0x268B5CF6), shape = RoundedCornerShape(4.dp)) {
-                            Text("Intermediate Quiz", color = Color(0xFFDDD6FE), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(6.dp, 2.dp))
+                            Text("Intermediate Quiz", color = Color(0xFFDDD6FE), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                         Text("What is the primary bug with using mutable default arguments in Python?", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Surface(color = Color(0xFF0B0E14), shape = RoundedCornerShape(6.dp)) {
@@ -174,7 +175,7 @@ fun LearnErrorCard(
             ) {
                 Text(title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                 Surface(color = Color(0x2638BDF8), shape = RoundedCornerShape(4.dp)) {
-                    Text(lang, color = AccentSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(4.dp, 2.dp))
+                    Text(lang, color = AccentSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                 }
             }
             Text(desc, color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)

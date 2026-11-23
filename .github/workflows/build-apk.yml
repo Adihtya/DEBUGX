@@ -29,8 +29,7 @@ jobs:
 
       - name: Build Debug APK with Gradle
         working-directory: android
-        run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee ../gradle-build.log
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Locate and list generated APK
         run: |
@@ -41,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DebugX-v1.0.0-apk
-          path: "android/app/build/outputs/apk/**/*.apk"
+          path: "**/*.apk"
           if-no-files-found: error
           retention-days: 30
 
@@ -62,6 +61,6 @@ jobs:
             - **Target SDK:** Android 14 (API 34)
             - **Min SDK:** Android 8.0 (API 26)
             - **Built with:** Kotlin, Jetpack Compose, Material 3, Google Gemini AI SDK
-          files: "android/app/build/outputs/apk/**/*.apk"
+          files: "**/*.apk"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
