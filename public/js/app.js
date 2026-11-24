@@ -251,7 +251,13 @@ class AppController {
     });
 
     document.getElementById('apiKeyIndicator')?.addEventListener('click', () => {
-      this.switchScreen('screenProfile');
+      const currentKey = window.geminiService?.customApiKey || '';
+      const newKey = prompt('Configure Gemini API Key from Google AI Studio (leave blank to clear and use built-in AST engine):', currentKey);
+      if (newKey !== null) {
+        window.geminiService?.setStoredApiKey(newKey);
+        this.showToast(newKey ? 'Gemini API Key saved!' : 'Cleared custom key. Using built-in AST engine.', 'success');
+        this.updateApiStatusIndicator();
+      }
     });
 
     document.getElementById('notificationsBtn')?.addEventListener('click', () => {
@@ -937,34 +943,45 @@ class AppController {
     const confBar = document.getElementById('resConfidenceBar');
     if (confBar) confBar.style.width = `${confVal}%`;
 
-    // Problematic lines
+    // Problematic line numbers normalizer (handles both [2] and [{ line_number: 2, ... }])
+    const errLineNumbers = (data.problematic_lines || []).map(item => {
+      if (typeof item === 'object' && item !== null && item.line_number != null) {
+        return item.line_number;
+      }
+      return typeof item === 'number' ? item : parseInt(item, 10);
+    }).filter(n => !isNaN(n));
+
+    // Problematic lines tag
     const lineTag = document.getElementById('resProblemLines');
     if (lineTag) {
-      lineTag.textContent = data.problematic_lines?.length
-        ? `Line ${data.problematic_lines.join(', ')}`
-        : 'Identified';
+      lineTag.textContent = errLineNumbers.length
+        ? `Line ${errLineNumbers.join(', ')}`
+        : (data.status === 'needs_more_information' ? 'Incomplete' : 'Identified');
     }
 
     // What went wrong & Why did it happen
-    document.getElementById('resSummary').textContent = data.summary;
-    document.getElementById('resRootCause').textContent = data.root_cause;
+    document.getElementById('resSummary').textContent = data.summary || data.error_summary || 'Analysis complete.';
+    document.getElementById('resRootCause').textContent = data.root_cause || data.why_the_fix_works || 'No root cause identified.';
 
     // Problematic Code with highlight
     const originalPre = document.getElementById('resOriginalCode');
     if (originalPre) {
       const lines = (data.original_code || '').split('\n');
-      const errLines = data.problematic_lines || [1];
       const highlighted = lines.map((l, i) => {
-        if (errLines.includes(i + 1)) {
-          return `<span class="line-highlight-error">${this.escapeHtml(l)}  # <-- Issue identified here</span>`;
+        if (errLineNumbers.includes(i + 1)) {
+          const matchingObj = Array.isArray(data.problematic_lines) && typeof data.problematic_lines[0] === 'object'
+            ? data.problematic_lines.find(p => p.line_number === (i + 1))
+            : null;
+          const reasonComment = matchingObj?.reason ? `  # <-- ${matchingObj.reason}` : `  # <-- Issue identified here`;
+          return `<span class="line-highlight-error">${this.escapeHtml(l)}${this.escapeHtml(reasonComment)}</span>`;
         }
         return this.escapeHtml(l);
       }).join('\n');
-      originalPre.innerHTML = highlighted;
+      originalPre.innerHTML = highlighted || `<code>${this.escapeHtml(data.original_code || '')}</code>`;
     }
 
     // Suggested Fix
-    document.getElementById('resCorrectedCode').textContent = data.corrected_code;
+    document.getElementById('resCorrectedCode').textContent = data.corrected_code || data.original_code || '# No changes required';
 
     // Explanation list
     this.updateExplanationModeView(this.activeExplanationMode);
@@ -995,7 +1012,14 @@ class AppController {
         : this.currentSession.explanation_beginner || this.currentSession.explanation;
     }
 
-    listEl.innerHTML = (points || []).map(p => `<li>${this.escapeHtml(p)}</li>`).join('');
+    if (!Array.isArray(points) || !points.length) {
+      points = [
+        this.currentSession.why_the_fix_works || this.currentSession.root_cause,
+        ...(this.currentSession.changes || [])
+      ].filter(Boolean);
+    }
+
+    listEl.innerHTML = (points || []).map(p => `<li>${this.escapeHtml(typeof p === 'string' ? p : JSON.stringify(p))}</li>`).join('');
   }
 
   navigateToConcept(conceptName) {
@@ -1281,6 +1305,16 @@ class AppController {
 
   // --- Profile & AI Configuration Management ---
   bindProfile() {
+    document.getElementById('configureApiKeyBtn')?.addEventListener('click', () => {
+      const currentKey = window.geminiService?.customApiKey || '';
+      const newKey = prompt('Configure Gemini API Key from Google AI Studio (leave blank to clear and use built-in AST engine):', currentKey);
+      if (newKey !== null) {
+        window.geminiService?.setStoredApiKey(newKey);
+        this.showToast(newKey ? 'Gemini API Key saved!' : 'Cleared custom key. Using built-in AST engine.', 'success');
+        this.updateApiStatusIndicator();
+      }
+    });
+
     // Retry / Test AI connection
     document.getElementById('retryAiConnectionBtn')?.addEventListener('click', async () => {
       const msgEl = document.getElementById('aiVerificationMsg');
