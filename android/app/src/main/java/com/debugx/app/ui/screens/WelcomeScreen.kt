@@ -181,6 +181,27 @@ fun WelcomeScreen(
                         }
                     }
 
+                    // Demo / Offline Instant Sign-In
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.signInAsDemo()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x337957FF)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFA78BFA)
+                        )
+                    ) {
+                        Text(
+                            "Continue as Demo Developer (Instant)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
                     // Feature highlights
                     Column(
                         modifier = Modifier

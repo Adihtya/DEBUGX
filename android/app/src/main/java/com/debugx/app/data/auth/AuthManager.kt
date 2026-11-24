@@ -92,8 +92,12 @@ class AuthManager(private val context: Context) {
 
                 // Authenticate with Firebase using Google ID Token
                 val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
-                val authResult = firebaseAuth.signInWithCredential(firebaseCredential)
-                val firebaseUser = authResult.result?.user
+                val authResult = try {
+                    com.google.android.gms.tasks.Tasks.await(firebaseAuth.signInWithCredential(firebaseCredential))
+                } catch (e: Exception) {
+                    null
+                }
+                val firebaseUser = authResult?.user
 
                 val profile = UserProfile(
                     uid = firebaseUser?.uid ?: "usr_${System.currentTimeMillis()}",
@@ -128,6 +132,13 @@ class AuthManager(private val context: Context) {
             _authState.value = AuthState.Authenticated(devProfile)
             return@withContext Result.success(devProfile)
         }
+    }
+
+    suspend fun signInAsDemo(): Result<UserProfile> = withContext(Dispatchers.IO) {
+        val devProfile = getDeveloperFallbackProfile()
+        _currentUser.value = devProfile
+        _authState.value = AuthState.Authenticated(devProfile)
+        Result.success(devProfile)
     }
 
     private fun getDeveloperFallbackProfile(): UserProfile {

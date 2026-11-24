@@ -85,6 +85,20 @@ class AuthManager {
     return this.currentUser;
   }
 
+  signInAsDemo() {
+    const devUser = {
+      uid: 'usr_' + Math.random().toString(36).substring(2, 10),
+      displayName: 'Aditya Chaudhari',
+      email: 'aditya.dev@debugx.ai',
+      photoURL: ''
+    };
+    this.currentUser = devUser;
+    localStorage.setItem(this.storageKey, JSON.stringify(devUser));
+    this.syncUserProfile(devUser);
+    this.notifyListeners('authenticated', devUser);
+    return devUser;
+  }
+
   /**
    * Real Google Authentication via Firebase Auth
    */

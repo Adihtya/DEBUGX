@@ -4267,6 +4267,29 @@ body {
   transform: translateY(0);
 }
 
+.btn-demo-auth {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  background: rgba(121, 87, 255, 0.08);
+  color: #a78bfa;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(121, 87, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-demo-auth:hover {
+  background: rgba(121, 87, 255, 0.16);
+  border-color: rgba(121, 87, 255, 0.5);
+  color: #ffffff;
+}
+
 .google-icon {
   flex-shrink: 0;
 }

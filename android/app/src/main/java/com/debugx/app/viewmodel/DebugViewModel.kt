@@ -102,6 +102,16 @@ class DebugViewModel(
         }
     }
 
+    fun signInAsDemo() {
+        viewModelScope.launch {
+            val result = authManager.signInAsDemo()
+            result.onSuccess { user ->
+                repository.userProfileRepository.syncProfile(user)
+                repository.verifyAiConnection()
+            }
+        }
+    }
+
     fun signOut() {
         viewModelScope.launch {
             authManager.signOut()

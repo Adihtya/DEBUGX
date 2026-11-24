@@ -107,6 +107,12 @@ class AppController {
       }
     });
 
+    // Demo Developer Sign-In Action (Instant / Offline)
+    document.getElementById('btnDemoSignIn')?.addEventListener('click', () => {
+      window.authManager.signInAsDemo();
+      this.showToast("Welcome back, Developer! (Demo Mode)", "success");
+    });
+
     // Sign Out Action
     document.getElementById('btnSignOut')?.addEventListener('click', async () => {
       await window.authManager.signOut();
