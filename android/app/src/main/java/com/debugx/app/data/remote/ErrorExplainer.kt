@@ -48,29 +48,51 @@ class ErrorExplainer {
                     name = "input",
                     type = "Any",
                     scope = "global",
-                    firstDeclaredLine = 1,
-                    usagesLines = listOf(1),
-                    description = "Execution payload"
+                    declaredLine = 1,
+                    usedLines = listOf(1),
+                    purpose = "Execution payload"
                 )
             ),
             controlStructures = emptyList(),
-            functionHierarchy = FunctionHierarchy(name = "main", calls = emptyList()),
-            executionSteps = listOf(
+            functionHierarchy = listOf(
+                FunctionHierarchy(
+                    name = "main",
+                    parameters = emptyList(),
+                    returns = "void",
+                    callers = emptyList(),
+                    callees = emptyList()
+                )
+            ),
+            executionFlow = listOf(
                 ExecutionStep(
                     step = 1,
                     line = 1,
-                    stateSummary = "Program initializes execution context.",
-                    variableSnapshot = mapOf("status" to "initialized")
+                    description = "Program initializes execution context."
                 )
             ),
-            loopVisualizer = LoopIteration(loopLine = 1, loopType = "Sequential", iterations = emptyList()),
-            functionVisualizer = FunctionCallFrame(frames = listOf(CallFrame(frameId = 1, functionName = "main", args = emptyMap(), returnValue = "Done"))),
+            loopVisualizer = listOf(
+                LoopIteration(
+                    iteration = 1,
+                    variablesState = mapOf("status" to "initialized"),
+                    explanation = "Sequential execution"
+                )
+            ),
+            functionVisualizer = listOf(
+                FunctionCallFrame(
+                    frame = 1,
+                    functionName = "main",
+                    arguments = emptyMap(),
+                    returnValue = "Done",
+                    status = "Completed"
+                )
+            ),
             predictedOutput = PredictedOutput(
                 outputText = "Program executed without fatal exceptions.",
-                executionType = "statically_predicted",
-                honestyNotice = "Statically modeled via AST simulation, not sandbox execution."
+                isStaticallyPredicted = true,
+                confidence = 0.95,
+                reasoning = "Statically modeled via AST simulation, not sandbox execution."
             ),
-            potentialIssues = emptyList()
+            bugsAndImprovements = emptyList()
         )
     }
 }

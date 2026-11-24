@@ -71,6 +71,9 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
+    // Google Guava for ListenableFuture (CameraX)
+    implementation(libs.guava)
+
     // Firebase BoM & Services
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)

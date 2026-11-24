@@ -20,7 +20,7 @@ class ScreenshotAnalyzer {
             errorTitle = "Runtime Trace OCR: IndexError & Unhandled Exception",
             errorCategory = "Runtime Error",
             severity = "High",
-            confidence = 0.95f,
+            confidence = 0.95,
             problematicLines = listOf(2),
             summary = if (mode == ExplanationMode.BEGINNER)
                 "DebugX extracted the code from your camera photo. An operation tried to access an element at an index that does not exist in memory."

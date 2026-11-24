@@ -224,6 +224,14 @@ class DebugViewModel(
         onNavigate()
     }
 
+    fun deleteHistoryItem(item: DebugResponse) {
+        repository.deleteHistoryItem(item)
+    }
+
+    fun clearHistory() {
+        repository.clearHistory()
+    }
+
     // -------------------------------------------------------------
     // Explain My Code Actions
     // -------------------------------------------------------------
@@ -297,6 +305,10 @@ class DebugViewModel(
                 )
             }
         }
+    }
+
+    fun sendExplainQuestion(question: String) {
+        sendExplainFollowUp(question)
     }
 
     fun sendExplainFollowUp(question: String) {

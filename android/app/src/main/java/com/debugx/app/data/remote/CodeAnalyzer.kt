@@ -27,7 +27,7 @@ class CodeAnalyzer {
                 errorTitle = "NullPointerException: Attempt to invoke virtual method on null object",
                 errorCategory = "Null Safety",
                 severity = "Critical",
-                confidence = 0.96f,
+                confidence = 0.96,
                 problematicLines = listOf(2),
                 summary = if (mode == ExplanationMode.BEGINNER)
                     "Your code tried to use an object that does not exist in memory yet (it is null, meaning completely empty)."
@@ -63,7 +63,7 @@ class CodeAnalyzer {
             errorTitle = "Runtime Boundary & Assertion Anomaly",
             errorCategory = "Runtime Error",
             severity = "Medium",
-            confidence = 0.92f,
+            confidence = 0.92,
             problematicLines = listOf(1),
             summary = if (mode == ExplanationMode.BEGINNER)
                 "DebugX verified your code. Ensure sequence bounds are checked before accessing elements."
