@@ -14,8 +14,32 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Exponential Backoff Retry Helper for Transient (429/503) Errors
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const res = await fetch(url, options);
+      if (res.status === 429 || res.status === 503) {
+        attempt++;
+        if (attempt >= maxRetries) return res;
+        const delay = Math.pow(2, attempt) * 600 + Math.random() * 300;
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      attempt++;
+      if (attempt >= maxRetries) throw e;
+      const delay = Math.pow(2, attempt) * 600 + Math.random() * 300;
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  return fetch(url, options);
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -109,12 +133,12 @@ User Question: ${question}
 Provide an accurate, technically sound, and concise explanation answering the user question based on the diagnosed context.`;
 
       const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-      const geminiRes = await fetch(geminiUrl, {
+      const geminiRes = await fetchWithRetry(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: chatPrompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
         }),
       });
 
@@ -125,6 +149,55 @@ Provide an accurate, technically sound, and concise explanation answering the us
         JSON.stringify({ reply: answer, timestamp: Date.now() }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Action 2.5: Independent Solution Review Engine
+    if (action === "review") {
+      const reviewPrompt = `You are an independent Senior Quality Assurance and Compiler Reviewer.
+Review this proposed code correction:
+
+Language: ${language}
+Original Code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Proposed Corrected Code:
+\`\`\`${language}
+${body.correctedCode || body.corrected_code || code}
+\`\`\`
+
+Evaluate carefully:
+1. Does the proposed fix genuinely resolve the identified root cause?
+2. Does it preserve all original functionality without breaking other features?
+3. Does it introduce any new bugs or regressions?
+
+Return strictly valid JSON:
+{
+  "approved": true,
+  "score": 95,
+  "preserves_functionality": true,
+  "addresses_root_cause": true,
+  "introduces_regressions": false,
+  "regression_details": "None identified",
+  "feedback": "Evaluation summary"
+}`;
+
+      const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
+      const geminiRes = await fetchWithRetry(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: reviewPrompt }] }],
+          generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+        }),
+      });
+
+      const geminiData = await geminiRes.json();
+      const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+      return new Response(rawText, {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Action 3: Explain My Code (Line-by-line, Variables, Flow, Complexity)
@@ -173,7 +246,7 @@ Return strictly valid JSON matching this schema:
 }`;
 
       const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-      const geminiRes = await fetch(geminiUrl, {
+      const geminiRes = await fetchWithRetry(geminiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -286,7 +359,7 @@ Return ONLY a strictly valid JSON response adhering to this schema:
     }
 
     const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-    const geminiRes = await fetch(geminiUrl, {
+    const geminiRes = await fetchWithRetry(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -316,6 +389,37 @@ Return ONLY a strictly valid JSON response adhering to this schema:
     const geminiData = await geminiRes.json();
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsedResult = JSON.parse(rawText);
+
+    // Standardize schema fields adhering to master specification
+    parsedResult.correctedCode = parsedResult.correctedCode || parsedResult.corrected_code || code;
+    parsedResult.corrected_code = parsedResult.correctedCode;
+
+    if (!Array.isArray(parsedResult.issues)) {
+      if (parsedResult.status === "diagnosed" && !parsedResult.error_type?.includes("Clean Code")) {
+        const primaryLine = parsedResult.problematic_lines?.[0]?.line_number || null;
+        parsedResult.issues = [
+          {
+            title: parsedResult.error_summary || parsedResult.error_type || "Diagnosed Defect",
+            category: parsedResult.error_category || parsedResult.error_type || "LOGICAL",
+            severity: parsedResult.severity || "HIGH",
+            line: primaryLine,
+            rootCause: parsedResult.root_cause || parsedResult.why_the_fix_works,
+            evidence: parsedResult.evidence?.[0] || "",
+            suggestedFix: parsedResult.changes?.[0] || parsedResult.why_the_fix_works || "Apply fix"
+          }
+        ];
+      } else {
+        parsedResult.issues = [];
+      }
+    }
+
+    parsedResult.verification = parsedResult.verification || {
+      status: parsedResult.verification_status || "not_verified",
+      testsRun: Array.isArray(parsedResult.test_cases) ? parsedResult.test_cases.length : 0,
+      passed: parsedResult.verification_status === "passed" ? 1 : 0,
+      failed: parsedResult.verification_status === "failed" ? 1 : 0,
+      details: parsedResult.verification_details || "Not execution-verified. Statically verified against root cause invariants."
+    };
 
     // Provide legacy compatibility fields for existing UI components
     parsedResult.error_title = parsedResult.error_title || parsedResult.error_summary || parsedResult.error_type;

@@ -147,7 +147,10 @@ class GeminiService {
         params.expectedBehavior || '',
         params.filename || '',
         params.expectedOutput || '',
-        params.actualOutput || ''
+        params.actualOutput || '',
+        params.onProgress || null,
+        params.sessionId || null,
+        params.userId || null
       );
     }
     return this.analyse(...arguments);
@@ -156,12 +159,14 @@ class GeminiService {
   /**
    * Complete Multi-Stage Debugging Pipeline (Phases 1-7)
    */
-  async analyse(code, screenshotBase64 = null, language = 'Auto-Detect', mode = 'beginner', errorMessage = '', stackTrace = '', expectedBehavior = '', filename = '', expectedOutput = '', actualOutput = '') {
+  async analyse(code, screenshotBase64 = null, language = 'Auto-Detect', mode = 'beginner', errorMessage = '', stackTrace = '', expectedBehavior = '', filename = '', expectedOutput = '', actualOutput = '', onProgress = null, sessionId = null, userId = null) {
     this._initServices();
 
     // -------------------------------------------------------------------------
-    // STAGE 1: INPUT PROCESSING (Phase 2)
+    // STAGE 1: INPUT PROCESSING & CODE UNDERSTANDING
     // -------------------------------------------------------------------------
+    onProgress?.(1, 'Understanding code structure and control flow...');
+
     let processed = {
       originalCode: code || '',
       sanitizedCode: (code || '').trim(),
@@ -174,6 +179,8 @@ class GeminiService {
       expectedBehavior: expectedBehavior || '',
       expectedOutput: expectedOutput || '',
       actualOutput: actualOutput || '',
+      sessionId,
+      userId,
       isIncomplete: false,
       missingInfo: []
     };
@@ -190,6 +197,8 @@ class GeminiService {
         expectedOutput,
         actualOutput
       });
+      processed.sessionId = sessionId;
+      processed.userId = userId;
     }
 
     // Handle completely blank input (Rule 7: Uncertainty Handling)
@@ -199,8 +208,10 @@ class GeminiService {
     }
 
     // -------------------------------------------------------------------------
-    // STAGE 2: LANGUAGE-AWARE STATIC ANALYSIS (Phase 3)
+    // STAGE 2: LANGUAGE-AWARE STATIC ANALYSIS & ERROR INVESTIGATION
     // -------------------------------------------------------------------------
+    onProgress?.(2, 'Investigating syntax, logical, and runtime errors...');
+
     let staticResult = { hasIssues: false, diagnostics: [], primaryDefect: null, language: processed.detectedLanguage };
     if (this.staticAnalyzer) {
       staticResult = this.staticAnalyzer.analyze(processed);
@@ -209,9 +220,43 @@ class GeminiService {
     let finalReport = null;
 
     // -------------------------------------------------------------------------
-    // STAGE 3: AI DIAGNOSIS ENGINE (Phase 4)
+    // STAGE 3: AI DIAGNOSIS & ROOT CAUSE ANALYSIS ENGINE
     // -------------------------------------------------------------------------
-    // 3a. Direct Gemini API call if custom key configured
+    onProgress?.(3, 'Analyzing root cause and verifying invariants...');
+
+    // 3a. Secure Local Server-Side Gemini API Proxy (Zero Client Key Exposure)
+    if (typeof window !== 'undefined' && !finalReport) {
+      try {
+        const localApiRes = await fetch('/api/gemini/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: processed.sanitizedCode,
+            language: processed.detectedLanguage,
+            mode,
+            errorMessage: processed.errorMessage,
+            stackTrace: processed.stackTrace,
+            expectedBehavior: processed.expectedBehavior,
+            expectedOutput: processed.expectedOutput,
+            actualOutput: processed.actualOutput,
+            staticDiagnostics: staticResult.diagnostics,
+            screenshotBase64,
+            sessionId: processed.sessionId,
+            userId: processed.userId
+          })
+        });
+        if (localApiRes.ok) {
+          const localData = await localApiRes.json();
+          if (localData && (localData.status === 'success' || localData.status === 'diagnosed' || localData.status === 'needs_more_information')) {
+            finalReport = localData;
+          }
+        }
+      } catch (localErr) {
+        // Fallback to next tier
+      }
+    }
+
+    // 3b. Direct Gemini API call if custom key configured
     if (this.customApiKey && !finalReport) {
       try {
         const directResult = await this._callDirectGeminiAnalyze(processed, mode, staticResult.diagnostics);
@@ -223,7 +268,7 @@ class GeminiService {
       }
     }
 
-    // 3b. Supabase Edge Function call
+    // 3c. Supabase Edge Function call
     const client = typeof window !== 'undefined' ? window.supabaseManager?.getClient() : null;
     if (client && window.supabaseManager?.isLiveConnected && !finalReport) {
       try {
@@ -250,14 +295,17 @@ class GeminiService {
       }
     }
 
-    // 3c. Deterministic AST / Semantic Analysis Engine (Local Reliable Fallback)
+    // 3d. Deterministic AST / Semantic Analysis Engine (Local Reliable Fallback)
     if (!finalReport) {
       finalReport = this._accurateLocalAnalysis(processed, staticResult, mode);
     }
 
     // -------------------------------------------------------------------------
-    // STAGE 4: SECOND-PASS REVIEWER ENGINE (Phase 7)
+    // STAGE 4: SECOND-PASS REVIEWER ENGINE (Engine 5)
     // -------------------------------------------------------------------------
+    onProgress?.(4, 'Generating minimal surgical correction...');
+    onProgress?.(5, 'Reviewing proposed solution for regressions...');
+
     if (this.reviewerService && finalReport.status === 'diagnosed') {
       const review = this.reviewerService.reviewFix({
         originalCode: processed.sanitizedCode,
@@ -1045,8 +1093,8 @@ Return strictly valid JSON matching this schema:
     r.missing_information = Array.isArray(r.missing_information) ? r.missing_information : [];
 
     // Construct issues array adhering to Section 5 schema
-    if (!Array.isArray(r.issues)) {
-      if (r.status === 'diagnosed' && r.error_type !== 'Clean Code') {
+    if (!Array.isArray(r.issues) || r.error_type?.includes('Clean Code')) {
+      if (r.status === 'diagnosed' && !r.error_type?.includes('Clean Code')) {
         const primaryLine = r.problematic_lines && r.problematic_lines[0] ? r.problematic_lines[0].line_number : null;
         r.issues = [
           {
@@ -1114,7 +1162,24 @@ Return strictly valid JSON matching this schema:
   // ==============================================================================
 
   async explainCode(code, language = 'Auto-Detect', mode = 'beginner') {
-    // 1. Direct Gemini API
+    // 1. Local Server Secure Gemini Proxy
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/gemini/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language, mode })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.summary) return data;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    // 2. Direct Gemini API
     if (this.customApiKey) {
       try {
         const directExplain = await this._callDirectGeminiExplain(code, language, mode);
@@ -1124,7 +1189,7 @@ Return strictly valid JSON matching this schema:
       }
     }
 
-    // 2. Supabase Edge Function
+    // 3. Supabase Edge Function
     const client = typeof window !== 'undefined' ? window.supabaseManager?.getClient() : null;
     if (client && window.supabaseManager?.isLiveConnected) {
       try {
@@ -1137,7 +1202,7 @@ Return strictly valid JSON matching this schema:
       }
     }
 
-    // 3. High-Accuracy Dynamic AST & Semantic Code Explainer
+    // 4. High-Accuracy Dynamic AST & Semantic Code Explainer
     return this._generateDynamicCodeExplanation(code, language, mode);
   }
 
@@ -1234,8 +1299,31 @@ Return JSON:
   }
 
   async askFollowUpChat(params) {
-    const { question, sessionContext } = params;
-    // 1. Direct Gemini
+    const { question, sessionContext, sessionId, userId } = params;
+
+    // 1. Local Server Secure Conversational Proxy
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/gemini/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question,
+            sessionId: sessionId || sessionContext?.id || 'session_default',
+            userId: userId || 'active_user',
+            sessionContext
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.reply) return data;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    // 2. Direct Gemini
     if (this.customApiKey) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.customApiKey}`;
@@ -1254,7 +1342,7 @@ Return JSON:
       } catch (e) {}
     }
 
-    // 2. Supabase Edge
+    // 3. Supabase Edge
     const client = typeof window !== 'undefined' ? window.supabaseManager?.getClient() : null;
     if (client && window.supabaseManager?.isLiveConnected) {
       try {

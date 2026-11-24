@@ -812,16 +812,29 @@ class AppController {
 
     if (overlay) overlay.style.display = 'flex';
 
-    // Step 1: Input processing & Static Analysis
-    if (progressFill) progressFill.style.width = '35%';
-    if (titleEl) titleEl.textContent = 'Parsing Code & Language Invariants...';
-    document.getElementById('stepOCR')?.classList.add('active');
+    // Progressive Multi-Stage Progress Updater (Engines 1-6)
+    const stepIds = ['stepUnderstand', 'stepInvestigate', 'stepRootCause', 'stepFixGen', 'stepReview', 'stepVerify'];
+    stepIds.forEach(id => document.getElementById(id)?.classList.remove('active'));
+    document.getElementById('stepUnderstand')?.classList.add('active');
 
-    // Step 2: AI Reasoning & Root Cause Isolation
-    if (progressFill) progressFill.style.width = '70%';
-    if (titleEl) titleEl.textContent = 'Analyzing Runtime Semantics & Logic Invariants...';
-    if (subEl) subEl.textContent = 'Validating control flow and edge cases';
-    document.getElementById('stepCause')?.classList.add('active');
+    const updateStepProgress = (stage, label) => {
+      const pct = Math.min(100, Math.round((stage / 6) * 100));
+      if (progressFill) progressFill.style.width = pct + '%';
+      if (titleEl) titleEl.textContent = label;
+      stepIds.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (idx + 1 <= stage) el.classList.add('active');
+          else el.classList.remove('active');
+        }
+      });
+    };
+
+    updateStepProgress(1, 'Understanding code structure and control flow...');
+
+    // Generate stable session id for conversational follow-up memory
+    this.activeSessionId = 'sess_' + Date.now();
+    const currentUserId = window.authManager?.currentUser?.id || 'dev_user';
 
     // Check if input matches Section 18 sample
     const isSample = code.includes('numbers = [10, 20, 30]') && code.includes('numbers[5]');
@@ -836,17 +849,19 @@ class AppController {
         errorMessage,
         expectedOutput,
         actualOutput,
-        isSample
+        isSample,
+        sessionId: this.activeSessionId,
+        userId: currentUserId,
+        onProgress: updateStepProgress
       });
 
-      // Step 3: Synthesis & Verification complete
-      if (progressFill) progressFill.style.width = '100%';
-      if (titleEl) titleEl.textContent = 'Synthesizing Verified Fix & Prevention Tips...';
-      document.getElementById('stepFix')?.classList.add('active');
+      // Synthesis & Verification complete
+      updateStepProgress(6, 'Analysis and invariant verification complete!');
 
       if (overlay) overlay.style.display = 'none';
 
       // Store current session
+      result.sessionId = this.activeSessionId;
       this.currentSession = result;
 
       // Automatically persist to history and Supabase PostgreSQL
@@ -1208,15 +1223,19 @@ class AppController {
     this.appendChatBubble('ai', 'Thinking...', typingId);
 
     try {
-      const reply = await window.geminiService.askFollowUpChat({
+      const chatRes = await window.geminiService.askFollowUpChat({
         question: text,
-        sessionContext: this.currentSession || DEBUGX_SAMPLE_DEMO
+        sessionContext: this.currentSession || DEBUGX_SAMPLE_DEMO,
+        sessionId: this.currentSession?.sessionId || this.activeSessionId || 'active_session',
+        userId: window.authManager?.currentUser?.id || 'dev_user'
       });
+
+      const replyText = typeof chatRes === 'object' ? (chatRes.reply || JSON.stringify(chatRes)) : chatRes;
 
       // Replace typing bubble
       const typingEl = document.getElementById(typingId);
       if (typingEl) {
-        typingEl.querySelector('.bubble-content').innerHTML = this.formatMarkdownText(reply);
+        typingEl.querySelector('.bubble-content').innerHTML = this.formatMarkdownText(replyText);
       }
     } catch (e) {
       const typingEl = document.getElementById(typingId);
