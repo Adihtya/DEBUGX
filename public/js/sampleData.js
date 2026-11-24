@@ -326,3 +326,12 @@ const PRACTICE_QUIZ_QUESTIONS = [
     explanation: "make_unique ensures exception safety and prevents unassigned orphan heap allocations if another subexpression throws an exception."
   }
 ];
+
+// Explicit window exposure for multi-script reliability
+if (typeof window !== 'undefined') {
+  window.DEBUGX_SAMPLE_DEMO = DEBUGX_SAMPLE_DEMO;
+  window.DEBUGX_TIPS = DEBUGX_TIPS;
+  window.INITIAL_HISTORY_ITEMS = INITIAL_HISTORY_ITEMS;
+  window.LEARN_ERROR_LIBRARY = LEARN_ERROR_LIBRARY;
+  window.PRACTICE_QUIZ_QUESTIONS = PRACTICE_QUIZ_QUESTIONS;
+}

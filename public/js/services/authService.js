@@ -99,6 +99,10 @@ class AuthService {
     }
   }
 
+  onAuthStateChanged(callback) {
+    return this.onAuthStateChange(callback);
+  }
+
   notifyListeners(state, user) {
     this.listeners.forEach(cb => {
       try {

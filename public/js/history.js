@@ -12,7 +12,8 @@ class HistoryManager {
   init() {
     if (!localStorage.getItem(this.storageKey)) {
       // Seed with initial items from sampleData.js
-      localStorage.setItem(this.storageKey, JSON.stringify(INITIAL_HISTORY_ITEMS));
+      const defaultItems = (typeof INITIAL_HISTORY_ITEMS !== 'undefined' ? INITIAL_HISTORY_ITEMS : window?.INITIAL_HISTORY_ITEMS) || [];
+      localStorage.setItem(this.storageKey, JSON.stringify(defaultItems));
     }
   }
 
