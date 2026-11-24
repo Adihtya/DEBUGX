@@ -16,6 +16,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const geminiBackend = require('./lib/geminiBackend');
+const executionEngine = require('./lib/executionEngine');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -80,8 +81,23 @@ const server = http.createServer(async (req, res) => {
   const [urlPath] = req.url.split('?');
 
   // ============================================================================
-  // SECURE SERVER-SIDE GEMINI API ROUTES
+  // SECURE SERVER-SIDE GEMINI API ROUTES & ISOLATED EXECUTION
   // ============================================================================
+  if (urlPath === '/api/execute' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const result = await executionEngine.execute(body);
+      return sendJson(res, 200, result);
+    } catch (execErr) {
+      console.error('[Execution Error]', execErr);
+      return sendJson(res, 500, {
+        executed: false,
+        status: 'VALIDATION FAILED',
+        error: execErr.message
+      });
+    }
+  }
+
   if (urlPath.startsWith('/api/gemini/')) {
     try {
       // 1. Health Ping

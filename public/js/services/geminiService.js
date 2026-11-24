@@ -220,9 +220,27 @@ class GeminiService {
     let finalReport = null;
 
     // -------------------------------------------------------------------------
-    // STAGE 3: AI DIAGNOSIS & ROOT CAUSE ANALYSIS ENGINE
+    // STAGE C: ISOLATED CODE EXECUTION & RUNTIME VALIDATION (Stage C)
     // -------------------------------------------------------------------------
-    onProgress?.(3, 'Analyzing root cause and verifying invariants...');
+    onProgress?.(3, 'Executing code in isolated sandbox...');
+    let executionResult = null;
+    const execService = typeof window !== 'undefined' ? window.executionService : null;
+    if (execService) {
+      try {
+        executionResult = await execService.execute({
+          code: processed.sanitizedCode,
+          language: processed.detectedLanguage,
+          expectedOutput: processed.expectedOutput
+        });
+      } catch (execErr) {
+        console.warn('[GeminiService] Execution service note:', execErr.message);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // STAGE D: AI DIAGNOSIS & ROOT CAUSE ANALYSIS ENGINE
+    // -------------------------------------------------------------------------
+    onProgress?.(4, 'Analyzing root cause and verifying invariants with AI...');
 
     // 3a. Secure Local Server-Side Gemini API Proxy (Zero Client Key Exposure)
     if (typeof window !== 'undefined' && !finalReport) {
@@ -240,6 +258,7 @@ class GeminiService {
             expectedOutput: processed.expectedOutput,
             actualOutput: processed.actualOutput,
             staticDiagnostics: staticResult.diagnostics,
+            executionResult,
             screenshotBase64,
             sessionId: processed.sessionId,
             userId: processed.userId
@@ -247,7 +266,7 @@ class GeminiService {
         });
         if (localApiRes.ok) {
           const localData = await localApiRes.json();
-          if (localData && (localData.status === 'success' || localData.status === 'diagnosed' || localData.status === 'needs_more_information')) {
+          if (localData && (localData.status || localData.issues)) {
             finalReport = localData;
           }
         }
@@ -284,7 +303,8 @@ class GeminiService {
             expectedBehavior: processed.expectedBehavior,
             expectedOutput: processed.expectedOutput,
             actualOutput: processed.actualOutput,
-            staticDiagnostics: staticResult.diagnostics
+            staticDiagnostics: staticResult.diagnostics,
+            executionResult
           }
         });
         if (!error && data && data.status) {
@@ -297,7 +317,7 @@ class GeminiService {
 
     // 3d. Deterministic AST / Semantic Analysis Engine (Local Reliable Fallback)
     if (!finalReport) {
-      finalReport = this._accurateLocalAnalysis(processed, staticResult, mode);
+      finalReport = this._accurateLocalAnalysis(processed, staticResult, mode, executionResult);
     }
 
     // -------------------------------------------------------------------------
@@ -346,8 +366,37 @@ class GeminiService {
   // HIGH-ACCURACY DETERMINISTIC LOCAL ANALYSIS (AST + Semantic Invariants)
   // ==============================================================================
 
-  _accurateLocalAnalysis(processed, staticResult, mode) {
+  _accurateLocalAnalysis(processed, staticResult, mode, executionResult = null) {
     const { sanitizedCode: code, lines, detectedLanguage: lang } = processed;
+
+    // Check 0: Actual Execution Results (Ground Truth from Sandbox)
+    if (executionResult && executionResult.hasError) {
+      const errType = executionResult.errorCategory || 'Runtime Error';
+      const errMsg = executionResult.errorMessage || executionResult.runtimeException || 'Execution failure';
+      const rootCause = executionResult.stderr || executionResult.compilationError || `Execution failed with code ${executionResult.exitCode}`;
+      const lineNum = executionResult.errorLine || 1;
+      return {
+        status: "BUG FOUND",
+        language: lang || "Python",
+        error_type: errType,
+        error_summary: errMsg,
+        confidence: 0.99,
+        evidence: [
+          executionResult.compilationError ? `Compilation failed: ${executionResult.compilationError.split('\n')[0]}` : `Process execution failed (exit code ${executionResult.exitCode})`,
+          executionResult.stderr ? `Traceback: ${executionResult.stderr.split('\n').filter(Boolean).slice(-2).join(' ')}` : `Runtime failure.`
+        ],
+        root_cause: rootCause,
+        problematic_lines: [{ line_number: lineNum, code: lines[lineNum - 1] || code, reason: errMsg }],
+        corrected_code: code,
+        changes: ["Fix execution failure detected in isolated sandbox."],
+        why_the_fix_works: `Resolves ${errType}.`,
+        test_cases: [{ scenario: "Execution verification", input: "Code snippet", expected_outcome: "Runs without exception" }],
+        verification_status: "VALIDATION FAILED",
+        verification_details: `Execution failed in sandbox: ${errMsg}`,
+        prevention_tips: ["Check variable definitions, syntax rules, and error logs before running."],
+        missing_information: []
+      };
+    }
 
     // Check 1: Use Static Analyzer Diagnostics if detected
     if (staticResult && staticResult.hasIssues && staticResult.primaryDefect) {
@@ -404,7 +453,7 @@ class GeminiService {
     }
 
     // Check 5: Clean Code / No Error Detected
-    return this._formatCleanCodeResult(code, lines, lang, mode, processed);
+    return this._formatCleanCodeResult(code, lines, lang, mode, processed, executionResult);
   }
 
   // ==============================================================================
@@ -944,17 +993,39 @@ class GeminiService {
     };
   }
 
-  _formatCleanCodeResult(code, lines, lang, mode, processed) {
+  _formatCleanCodeResult(code, lines, lang, mode, processed, executionResult = null) {
+    const executedClean = executionResult && executionResult.executed && !executionResult.hasError;
+    const hasAssertion = processed.expectedOutput && executionResult && executionResult.outputMatches === true;
     const cleanMsg = "No confirmed bug was identified in the provided code.";
+
+    let vStatus = "not_run";
+    let vDetails = "Not execution-verified. Statically verified against root cause invariants.";
+    let status = "diagnosed";
+
+    if (hasAssertion) {
+      status = "VERIFIED";
+      vStatus = "VERIFIED";
+      vDetails = `Execution verified: code output matches expected '${processed.expectedOutput}' without runtime errors.`;
+    } else if (executedClean) {
+      status = "POSSIBLE LOGIC ERROR";
+      vStatus = "VERIFIED";
+      vDetails = `Code executed successfully in sandbox (exit code 0); logical correctness is uncertain without test assertions.`;
+    } else if (executionResult && !executionResult.executed) {
+      status = "VALIDATION INCOMPLETE";
+      vStatus = "NOT VERIFIED";
+      vDetails = executionResult.reason || "Validation incomplete: runtime environment unavailable.";
+    }
+
     return {
-      status: "diagnosed",
+      status,
       language: lang,
       error_type: "Clean Code / No Error Detected",
       error_summary: cleanMsg,
       confidence: 1.0,
       evidence: [
         `Analyzed ${lines.length} lines of ${lang} code.`,
-        "All bracket delimiters, control structures, and variable references are structurally valid."
+        executedClean ? `Sandbox execution finished with exit code 0.` : "Static syntax structure evaluated.",
+        hasAssertion ? `Output matches expected: '${processed.expectedOutput}'` : "No explicit assertions provided."
       ],
       root_cause: `${cleanMsg} No syntax violations, out-of-bounds references, or unhandled exceptions detected in the provided code snippet.`,
       problematic_lines: [],
@@ -966,8 +1037,8 @@ class GeminiService {
       test_cases: [
         { scenario: "Standard execution", input: "Standard arguments", expected_outcome: "Executes without throwing exceptions" }
       ],
-      verification_status: "passed",
-      verification_details: "Verified: code executes cleanly against language grammar and runtime preconditions.",
+      verification_status: vStatus,
+      verification_details: vDetails,
       prevention_tips: [
         "Add automated unit tests to protect against regressions.",
         "Include type annotations to enhance code readability and maintenance."
@@ -1094,7 +1165,7 @@ Return strictly valid JSON matching this schema:
 
     // Construct issues array adhering to Section 5 schema
     if (!Array.isArray(r.issues) || r.error_type?.includes('Clean Code')) {
-      if (r.status === 'diagnosed' && !r.error_type?.includes('Clean Code')) {
+      if ((r.status === 'diagnosed' || r.status === 'BUG FOUND') && !r.error_type?.includes('Clean Code')) {
         const primaryLine = r.problematic_lines && r.problematic_lines[0] ? r.problematic_lines[0].line_number : null;
         r.issues = [
           {
@@ -1111,6 +1182,20 @@ Return strictly valid JSON matching this schema:
       } else {
         r.issues = [];
       }
+    }
+
+    // Map validation status to the 5 truthful statuses while preserving status schema
+    if (r.status === 'needs_more_information' || r.error_type === 'Incomplete Input') {
+      r.status = 'needs_more_information';
+      r.validationStatus = 'VALIDATION INCOMPLETE';
+    } else if (r.error_type?.includes('Clean Code') || r.error_summary?.includes('No confirmed bug')) {
+      r.status = 'diagnosed';
+      r.validationStatus = (r.verification_status === 'VERIFIED' && processed.expectedOutput) ? 'VERIFIED' : 'POSSIBLE LOGIC ERROR';
+    } else if (r.issues && r.issues.length > 0) {
+      r.status = 'diagnosed';
+      r.validationStatus = 'BUG FOUND';
+    } else {
+      r.validationStatus = r.status || 'POSSIBLE LOGIC ERROR';
     }
 
     // Construct verification object adhering to Section 5 & 9 schema

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node tests/debugging_evaluation_suite.js && node tests/gemini_integration_suite.js"
+    "test": "node tests/debugging_evaluation_suite.js && node tests/gemini_integration_suite.js && node tests/validation_engine_suite.js"
   },
   "keywords": [
     "debugging",

@@ -949,6 +949,30 @@ class AppController {
     document.getElementById('resLanguage').textContent = data.language || 'Python';
     document.getElementById('resTitle').textContent = data.error_title || 'Error Identified';
 
+    // Truthful Validation Status Badge (Section 3: BUG FOUND, VERIFIED, POSSIBLE LOGIC ERROR, VALIDATION INCOMPLETE, VALIDATION FAILED)
+    const valBadge = document.getElementById('resValidationStatusBadge');
+    if (valBadge) {
+      let statusText = data.status || 'BUG FOUND';
+      if (statusText === 'diagnosed' || statusText === 'success') {
+        statusText = (data.issues && data.issues.length > 0) ? 'BUG FOUND' : 'VERIFIED';
+      }
+      valBadge.textContent = statusText;
+
+      if (statusText === 'BUG FOUND') {
+        valBadge.className = 'severity-badge critical';
+      } else if (statusText === 'VERIFIED') {
+        valBadge.className = 'severity-badge low';
+      } else if (statusText === 'POSSIBLE LOGIC ERROR') {
+        valBadge.className = 'severity-badge medium';
+      } else if (statusText === 'VALIDATION INCOMPLETE') {
+        valBadge.className = 'severity-badge info';
+      } else if (statusText === 'VALIDATION FAILED') {
+        valBadge.className = 'severity-badge critical';
+      } else {
+        valBadge.className = 'severity-badge medium';
+      }
+    }
+
     // Severity
     const sevBadge = document.getElementById('resSeverity');
     if (sevBadge) {

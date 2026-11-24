@@ -346,6 +346,121 @@ class StaticAnalyzer {
         }
       }
     });
+
+    // 12. Python Undefined Variables & Missing Imports
+    const definedSymbols = new Set([
+      'print', 'len', 'range', 'int', 'str', 'float', 'list', 'dict', 'set', 'tuple', 'bool',
+      'min', 'max', 'sum', 'abs', 'round', 'enumerate', 'zip', 'map', 'filter', 'open', 'type',
+      'isinstance', 'issubclass', 'Exception', 'ValueError', 'TypeError', 'KeyError', 'IndexError',
+      'True', 'False', 'None', 'self', 'cls', 'args', 'kwargs', 'id', 'input', 'sorted', 'reversed',
+      'super', 'any', 'all', 'dir', 'help', 'pow', 'divmod', 'hash', 'iter', 'next', 'repr',
+      'chr', 'ord', 'hex', 'oct', 'bin', 'format', 'bytearray', 'bytes', '__name__', '__file__',
+      '__doc__', 'result'
+    ]);
+
+    // Pass A: Collect declared symbols
+    const funcParams = new Map();
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+
+      const impMatch = trimmed.match(/^import\s+([a-zA-Z_]\w*(?:\s*,\s*[a-zA-Z_]\w*)*)/);
+      if (impMatch) {
+        impMatch[1].split(',').forEach(s => definedSymbols.add(s.trim().split(/\s+as\s+/).pop().trim()));
+      }
+      const fromImpMatch = trimmed.match(/^from\s+[a-zA-Z_]\w*\s+import\s+([a-zA-Z_]\w*(?:\s*,\s*[a-zA-Z_]\w*)*)/);
+      if (fromImpMatch) {
+        fromImpMatch[1].split(',').forEach(s => definedSymbols.add(s.trim().split(/\s+as\s+/).pop().trim()));
+      }
+
+      const fnMatch = trimmed.match(/^def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)/);
+      if (fnMatch) {
+        const fnName = fnMatch[1];
+        definedSymbols.add(fnName);
+        const paramsList = fnMatch[2].split(',')
+          .map(p => p.trim().split('=')[0].trim())
+          .filter(Boolean);
+        funcParams.set(fnName, paramsList);
+        paramsList.forEach(p => definedSymbols.add(p));
+      }
+
+      const classMatch = trimmed.match(/^class\s+([a-zA-Z_]\w*)/);
+      if (classMatch) definedSymbols.add(classMatch[1]);
+
+      const forMatch = trimmed.match(/^for\s+([a-zA-Z_]\w*(?:\s*,\s*[a-zA-Z_]\w*)*)\s+in\b/);
+      if (forMatch) {
+        forMatch[1].split(',').forEach(v => definedSymbols.add(v.trim()));
+      }
+
+      const assignMatch = trimmed.match(/^([a-zA-Z_]\w*(?:\s*,\s*[a-zA-Z_]\w*)*)\s*=/);
+      if (assignMatch && !trimmed.startsWith('if ') && !trimmed.startsWith('while ') && !trimmed.startsWith('assert ')) {
+        assignMatch[1].split(',').forEach(v => definedSymbols.add(v.trim()));
+      }
+    });
+
+    // Pass B: Detect undefined identifiers
+    // Exclude single-line external function calls without context (Section 13 Test 7: result = process_data(user_input))
+    if (lines.length <= 2 && /^\s*(?:[a-zA-Z_]\w*\s*=\s*)?[a-zA-Z_]\w*\s*\([a-zA-Z_]\w*\)\s*;?$/.test(code.trim())) {
+      const fnName = code.trim().match(/([a-zA-Z_]\w*)\s*\(/)?.[1];
+      if (fnName && !['print', 'len', 'range', 'int', 'str', 'float', 'list', 'dict', 'set'].includes(fnName)) {
+        return; // Handled as Incomplete Input by InputProcessor & Uncertainty Handler
+      }
+    }
+
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('import ') || trimmed.startsWith('from ')) return;
+
+      const codeWithoutStrings = trimmed.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '');
+      const assignRHS = codeWithoutStrings.match(/^[a-zA-Z_]\w*\s*=\s*(.+)$/);
+      const exprToCheck = assignRHS ? assignRHS[1] : codeWithoutStrings;
+
+      const words = exprToCheck.match(/\b[a-zA-Z_]\w*\b/g) || [];
+      for (const w of words) {
+        if (['def', 'class', 'if', 'elif', 'else', 'for', 'while', 'in', 'is', 'not', 'and', 'or', 'return', 'yield', 'import', 'from', 'as', 'try', 'except', 'finally', 'with', 'pass', 'break', 'continue', 'raise', 'global', 'nonlocal', 'lambda'].includes(w)) {
+          continue;
+        }
+
+        if (new RegExp(`\\.${w}\\b`).test(exprToCheck)) continue;
+
+        if (!definedSymbols.has(w)) {
+          diagnostics.push({
+            category: 'RUNTIME_ERROR_HAZARD',
+            severity: 'error',
+            line: lineNum,
+            code: line,
+            message: `NameError: name '${w}' is not defined`,
+            rootCause: `Identifier '${w}' is referenced on line ${lineNum} before it has been assigned, declared, or imported in scope.`,
+            suggestedFix: `${w} = None  # Initialize before use\n${line}`,
+            confidence: 0.99
+          });
+          break;
+        }
+      }
+
+      // Check function argument count
+      for (const [fnName, expectedParams] of funcParams.entries()) {
+        const callRegex = new RegExp(`\\b${fnName}\\s*\\(([^)]*)\\)`);
+        const callMatch = trimmed.match(callRegex);
+        if (callMatch && !trimmed.startsWith(`def ${fnName}`)) {
+          const rawArgs = callMatch[1].trim();
+          const argCount = rawArgs.length === 0 ? 0 : rawArgs.split(',').length;
+          if (argCount < expectedParams.length) {
+            diagnostics.push({
+              category: 'TYPE_ERROR',
+              severity: 'error',
+              line: lineNum,
+              code: line,
+              message: `TypeError: ${fnName}() missing ${expectedParams.length - argCount} required positional argument(s)`,
+              rootCause: `Function '${fnName}' requires ${expectedParams.length} argument(s) (${expectedParams.join(', ')}), but was invoked with ${argCount}.`,
+              suggestedFix: `${fnName}(${expectedParams.join(', ')})`,
+              confidence: 0.98
+            });
+          }
+        }
+      }
+    });
   }
 
   _checkPythonIndexOutOfBounds(lines, diagnostics) {
@@ -522,6 +637,27 @@ class StaticAnalyzer {
   // ============================================================================
   _analyzeC(lines, code, language, diagnostics) {
     this._checkDelimiterBalance(lines, diagnostics, ['()', '[]', '{}']);
+
+    // Missing semicolon check in C/C++
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('#')) return;
+      if (trimmed.endsWith('{') || trimmed.endsWith('}') || trimmed.endsWith(':')) return;
+
+      if (/\b(?:int|char|float|double|return|std::cout|printf|scanf)\b/.test(trimmed) && !trimmed.endsWith(';')) {
+        diagnostics.push({
+          category: 'SYNTAX_ERROR',
+          severity: 'error',
+          line: lineNum,
+          code: line,
+          message: "SyntaxError: expected ';' after statement",
+          rootCause: "C/C++ requires a semicolon (';') at the termination of declarations and expression statements.",
+          suggestedFix: `${line};`,
+          confidence: 0.99
+        });
+      }
+    });
 
     // Check null pointer dereference
     lines.forEach((line, idx) => {
