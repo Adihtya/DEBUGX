@@ -615,6 +615,19 @@ print(numbers[5])" spellcheck="false"></textarea>
             </p>
           </div>
 
+          <!-- OBSERVABLE DIAGNOSTIC EVIDENCE -->
+          <div class="result-card" id="resEvidenceCard">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-cyan">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+              <h3 class="card-title">Diagnostic Evidence & Observations</h3>
+            </div>
+            <ul class="steps-bullet-list" id="resEvidenceList">
+              <li>Evidence points from code and static analysis will appear here.</li>
+            </ul>
+          </div>
+
           <!-- D. PROBLEMATIC CODE -->
           <div class="result-card">
             <div class="card-section-header">
@@ -670,6 +683,24 @@ else:
               <li>Checking <code>len(numbers) &gt; 5</code> guards against bounds violations before element access.</li>
               <li>An alternate defensive approach is using a <code>try / except IndexError</code> block.</li>
             </ul>
+          </div>
+
+          <!-- FIX VERIFICATION & TEST CASES CARD -->
+          <div class="result-card" id="resVerificationCard">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h3 class="card-title">Fix Verification & Test Scenarios</h3>
+              <span class="severity-badge medium" id="resVerificationBadge" style="margin-left: auto;">Not Execution-Verified</span>
+            </div>
+            <p class="explanation-text" id="resVerificationDetails">
+              Not execution-verified. Local static invariant analysis verified against identified root cause.
+            </p>
+            <div id="resTestCasesBox" style="margin-top: 8px;">
+              <div class="metric-mini-label" style="margin-bottom: 6px;">Evaluated Test Scenarios</div>
+              <div id="resTestCasesList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
           </div>
 
           <!-- G. PREVENTION TIPS -->
@@ -1605,6 +1636,10 @@ else:
   <script src="js/services/preferencesService.js"></script>
   <script src="js/services/debuggingService.js"></script>
   <script src="js/services/storageService.js"></script>
+  <script src="js/services/inputProcessor.js"></script>
+  <script src="js/services/staticAnalyzer.js"></script>
+  <script src="js/services/reviewerService.js"></script>
+  <script src="js/services/verificationService.js"></script>
   <script src="js/services/geminiService.js"></script>
   <script src="js/sampleData.js"></script>
   <script src="js/history.js"></script>

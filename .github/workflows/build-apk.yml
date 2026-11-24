@@ -28,6 +28,12 @@ jobs:
           node -c public/js/*.js public/js/services/*.js
           echo "All Web Studio scripts passed syntax check!"
 
+      - name: Run 50-Case Debugging Accuracy & Regression Test Suite
+        run: |
+          echo "=== Running 50-Case AI Debugging Engine Test Suite ==="
+          npm test
+          echo "All 50 test cases passed with 100% schema compliance and execution honesty!"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:

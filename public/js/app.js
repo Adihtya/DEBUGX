@@ -983,6 +983,54 @@ class AppController {
     // Suggested Fix
     document.getElementById('resCorrectedCode').textContent = data.corrected_code || data.original_code || '# No changes required';
 
+    // Observable Evidence List
+    const evidenceList = document.getElementById('resEvidenceList');
+    if (evidenceList) {
+      const evidence = Array.isArray(data.evidence) && data.evidence.length > 0
+        ? data.evidence
+        : [`Identified in ${data.language || 'source code'}: ${data.error_summary || data.root_cause || 'Code examined'}`];
+      evidenceList.innerHTML = evidence.map(ev => `<li>${this.escapeHtml(ev)}</li>`).join('');
+    }
+
+    // Verification Status & Test Cases
+    const vBadge = document.getElementById('resVerificationBadge');
+    const vDetails = document.getElementById('resVerificationDetails');
+    const tcList = document.getElementById('resTestCasesList');
+
+    if (vBadge) {
+      const vStatus = data.verification_status || 'not_run';
+      if (vStatus === 'passed') {
+        vBadge.className = 'severity-badge low';
+        vBadge.textContent = '✓ Execution-Verified (Passed)';
+      } else if (vStatus === 'failed') {
+        vBadge.className = 'severity-badge critical';
+        vBadge.textContent = '✗ Execution Failed';
+      } else {
+        vBadge.className = 'severity-badge medium';
+        vBadge.textContent = 'Not Execution-Verified (Static Only)';
+      }
+    }
+
+    if (vDetails) {
+      vDetails.textContent = data.verification_details || 'Not execution-verified. Statically verified against identified root cause.';
+    }
+
+    if (tcList) {
+      const testCases = Array.isArray(data.test_cases) ? data.test_cases : [];
+      if (testCases.length > 0) {
+        tcList.innerHTML = testCases.map(tc => `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 6px 10px; font-size: 0.78rem;">
+            <div style="font-weight: 600; color: #E2E8F0;">${this.escapeHtml(tc.scenario || 'Scenario')}</div>
+            <div style="color: #94A3B8; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; margin-top: 2px;">
+              <span style="color: #64748B;">Input:</span> ${this.escapeHtml(tc.input || 'None')} &rarr; <span style="color: #64748B;">Expected:</span> ${this.escapeHtml(tc.expected_outcome || 'Non-failing outcome')}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        tcList.innerHTML = '<span style="font-size: 0.75rem; color: #64748B;">No explicit test scenarios provided.</span>';
+      }
+    }
+
     // Explanation list
     this.updateExplanationModeView(this.activeExplanationMode);
 
@@ -1005,15 +1053,23 @@ class AppController {
     const listEl = document.getElementById('resExplanationList');
     if (!listEl || !this.currentSession) return;
 
-    let points = this.currentSession.explanation;
-    if (this.currentSession.is_sample) {
-      points = mode === 'advanced'
-        ? this.currentSession.explanation_advanced || this.currentSession.explanation
-        : this.currentSession.explanation_beginner || this.currentSession.explanation;
+    let points = null;
+    if (mode === 'advanced') {
+      points = this.currentSession.explanation_advanced || [
+        `Root Cause: ${this.currentSession.root_cause}`,
+        `Why the fix works: ${this.currentSession.why_the_fix_works}`,
+        ...(this.currentSession.changes || [])
+      ];
+    } else {
+      points = this.currentSession.explanation_beginner || [
+        `What happened: ${this.currentSession.error_summary || this.currentSession.summary}`,
+        `Why it happened: ${this.currentSession.root_cause}`,
+        `How to fix: ${this.currentSession.why_the_fix_works}`
+      ];
     }
 
     if (!Array.isArray(points) || !points.length) {
-      points = [
+      points = this.currentSession.explanation || [
         this.currentSession.why_the_fix_works || this.currentSession.root_cause,
         ...(this.currentSession.changes || [])
       ].filter(Boolean);

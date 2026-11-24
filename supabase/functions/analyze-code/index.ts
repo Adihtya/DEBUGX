@@ -69,6 +69,7 @@ serve(async (req: Request) => {
       expectedBehavior = "",
       language = "Auto-Detect",
       mode = "beginner",
+      staticDiagnostics = [],
       screenshotBase64,
       mimeType = "image/png",
       question = "",
@@ -127,87 +128,45 @@ Provide an accurate, technically sound, and concise explanation answering the us
     // Action 3: Explain My Code (Line-by-line, Variables, Flow, Complexity)
     if (action === "explain") {
       const explainPrompt = `You are DebugX Senior AI Code Analysis Specialist.
-Examine the following code carefully. Prioritize correctness over speed.
-Target Language: ${language}
-Explanation Mode: ${mode.toUpperCase()} (beginner = clear analogies and gentle steps; advanced = AST, memory boundaries, asymptotic complexity)
+Examine the following code carefully. Prioritize correctness and technical accuracy over speed.
 
-Submitted Code:
+Mode: ${mode === "advanced" ? "ADVANCED (use precise technical terminology, time/space complexity, AST concepts)" : "BEGINNER (plain step-by-step explanations, define any technical terms)"}
+Language: ${language}
+
+Source Code:
 \`\`\`${language}
 ${code}
 \`\`\`
 
-Return a strictly valid JSON response adhering to this EXACT schema:
+Return strictly valid JSON matching this schema:
 {
+  "summary": "High-level summary of what this code achieves",
   "language": "${language}",
-  "title": "Concise summary title of algorithm or script",
-  "summary": "Clear, technically accurate explanation of what this code does",
-  "complexity": {
-    "time": "O(...)",
-    "time_reasoning": "Derivation based on loops, recursion, and operations in the submitted code",
-    "space": "O(...)",
-    "space_reasoning": "Derivation based on auxiliary structures allocated in memory"
-  },
-  "line_explanations": [
+  "lines": [
     {
-      "line": 1,
-      "code": "exact code of line 1",
-      "explanation": "What this line does",
-      "beginner_analogy": "Simple analogy",
-      "role": "Function Definition / Variable Declaration / Loop Guard / Branch / Return"
+      "line_number": 1,
+      "code": "code snippet",
+      "explanation": "clear explanation of what this line accomplishes"
     }
   ],
   "variables": [
     {
-      "name": "varName",
-      "type": "inferred or explicit type",
-      "scope": "Local / Global / Member",
-      "declared_line": 1,
-      "used_lines": [2, 3],
-      "purpose": "What this variable tracks"
+      "name": "variable name",
+      "type": "inferred type",
+      "purpose": "how it is used"
     }
   ],
-  "control_structures": [
-    {
-      "type": "Loop / Conditional",
-      "line_range": "line start - line end",
-      "condition": "guard condition expression",
-      "explanation": "execution rule",
-      "termination": "termination condition"
-    }
+  "control_flow": [
+    "Step 1: ...",
+    "Step 2: ..."
   ],
-  "function_hierarchy": [
-    {
-      "name": "function_name",
-      "parameters": ["arg1"],
-      "returns": "return type/description",
-      "callers": [],
-      "callees": []
-    }
-  ],
-  "execution_flow": [
-    { "step": 1, "line": 1, "description": "Step execution description" }
-  ],
-  "loop_visualizer": [
-    { "iteration": 1, "variables_state": { "var": "val" }, "explanation": "State after iteration" }
-  ],
-  "function_visualizer": [
-    { "frame": 1, "function_name": "name", "arguments": {}, "return_value": "val", "status": "Completed" }
-  ],
-  "predicted_output": {
-    "output_text": "Predicted output when executed with standard input",
-    "is_statically_predicted": true,
-    "confidence": 0.95,
-    "reasoning": "Deduction based on code simulation",
-    "execution_notice": "Statically predicted via AST simulation. Not run in a live sandbox."
+  "complexity": {
+    "time": "e.g. O(n)",
+    "space": "e.g. O(1)",
+    "notes": "explanation of runtime bottlenecks or memory footprint"
   },
-  "bugs_and_improvements": [
-    {
-      "type": "Bug / Inefficiency / Code Smell",
-      "line": 1,
-      "severity": "Low / Medium / High",
-      "issue": "Specific issue",
-      "fix": "Recommended correction"
-    }
+  "best_practices": [
+    "Tip on clean code or idiomatic conventions"
   ]
 }`;
 
@@ -218,65 +177,59 @@ Return a strictly valid JSON response adhering to this EXACT schema:
         body: JSON.stringify({
           contents: [{ parts: [{ text: explainPrompt }] }],
           generationConfig: {
-            temperature: 0.1,
+            temperature: 0.2,
             responseMimeType: "application/json",
           },
         }),
       });
 
+      if (!geminiRes.ok) {
+        throw new Error(`Gemini API error: ${await geminiRes.text()}`);
+      }
+
       const geminiData = await geminiRes.json();
       const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = JSON.parse(rawText);
-
-      return new Response(JSON.stringify(parsed), {
+      return new Response(rawText, {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Action 4: High-Accuracy AI Debugging Engine
-    const debugPrompt = `You are DebugX, a world-class senior AI debugging engine.
-Your mission: Prioritize correctness over response speed. Never generate a code correction before understanding the actual problem.
+    // Action 4: Master Debugging Engine (Accuracy Overhaul Pipeline)
+    const diagnosticsContext = Array.isArray(staticDiagnostics) && staticDiagnostics.length > 0
+      ? `Static Analysis Pre-check Evidence:\n${JSON.stringify(staticDiagnostics, null, 2)}`
+      : "";
 
-CRITICAL INSTRUCTIONS:
-1. INPUT ANALYSIS:
-   - Carefully examine source code, error message, stack trace, and screenshot.
-   - Do NOT assume missing information. If code or context is incomplete, explicitly identify what is missing in "missing_information".
-2. ERROR IDENTIFICATION:
-   - Identify programming language, error category, exact error message, relevant code location, expected behavior, actual behavior.
-   - Do NOT invent line numbers, variables, functions, or error messages.
-   - If screenshot is unclear, state that the relevant text could not be confidently read.
-3. ROOT CAUSE ANALYSIS:
-   - Trace code execution step-by-step. Inspect variable usage, types, loops, conditions, and return values.
-   - Explain the root cause using concrete evidence from the supplied code. Distinguish confirmed causes from possible hypotheses.
-4. CODE CORRECTION:
-   - Generate the SMALLEST APPROPRIATE CORRECTION.
-   - Preserve original program structure. Avoid unnecessary rewrites.
-   - Preserve existing functionality. Do not remove unrelated code.
-   - Do not introduce new dependencies without justification.
-   - Preserve indentation and formatting.
-5. FIX VALIDATION:
-   - Generate test cases (original failure scenario, normal input, edge cases).
-   - Label verification_status as "not_run" and verification_details as "Not execution-verified" unless an execution tool actually executed it.
-6. EXPLANATION MODE:
-   - Mode is ${mode.toUpperCase()}. If BEGINNER: step by step, define terms simply. If ADVANCED: precise technical terms, execution mechanics, complexity.
+    const debugPrompt = `You are DEBUGX, an expert compiler engineer, systems architect, and AI debugging engine.
+Your highest objective is CORRECTNESS over response speed.
+Never generate a code correction before fully understanding the actual problem.
 
-Submitted Context:
-Target Language: ${language}
-${code ? `Source Code:\n\`\`\`${language}\n${code}\n\`\`\`` : "No code text provided directly."}
-${errorMessage ? `Error Message / Trace:\n${errorMessage}` : ""}
+=== INPUT DATA ===
+Language: ${language}
+Mode: ${mode.toUpperCase()} (BEGINNER: step-by-step, plain terms, define jargon; ADVANCED: precise technical terms, execution flow, AST details, memory/complexity)
+${code ? `Source Code:\n\`\`\`${language}\n${code}\n\`\`\`` : "Source Code: [EMPTY/NOT PROVIDED]"}
+${errorMessage ? `Error Message:\n${errorMessage}` : ""}
 ${stackTrace ? `Stack Trace:\n${stackTrace}` : ""}
 ${expectedBehavior ? `User Expected Behavior:\n${expectedBehavior}` : ""}
-${screenshotBase64 ? "A screenshot/camera capture has been attached." : ""}
+${diagnosticsContext}
+${screenshotBase64 ? "A screenshot or camera image has been attached." : ""}
 
-Return ONLY a strictly valid JSON response adhering to this EXACT schema:
+=== CRITICAL RULES ===
+1. CORRECTNESS IS PARAMOUNT: Never hallucinate code, line numbers, or variable names.
+2. EVIDENCE-DRIVEN: Base root cause explanations strictly on concrete evidence from the code, error message, or static diagnostics.
+3. SURGICAL CORRECTION: Generate the smallest appropriate fix. Preserve original program structure, indentation, and unrelated functions. Do not rewrite working code.
+4. UNCERTAINTY HANDLING: If the input is incomplete or insufficient, set status to "needs_more_information" and list exactly what is missing.
+5. EXECUTION HONESTY: Never claim that code was executed unless an execution tool ran it. Set verification_status to "not_run" and verification_details to "Not execution-verified. Statically verified against root cause."
+6. CLEAN CODE: If the code is correct and has no errors, set error_type to "Clean Code / No Error Detected", confidence to 1.0, and keep corrected_code identical to original_code.
+
+Return ONLY a strictly valid JSON response adhering to this schema:
 {
   "status": "diagnosed", // or "needs_more_information"
   "language": "${language}",
-  "error_type": "Specific Error Category (e.g. ZeroDivisionError, IndexError, SyntaxError, NullPointerException, Logic Error, Clean Code / No Error Detected)",
+  "error_type": "Exact Error Category (e.g. ZeroDivisionError, IndexError, SyntaxError, NullPointerException, Logic Error, Clean Code / No Error Detected)",
   "error_summary": "Concise 1-2 sentence description of the exact defect",
   "confidence": 0.95,
   "evidence": [
-    "Concrete quote or observation from the user's code"
+    "Concrete quote or observation from the user's code or error trace"
   ],
   "root_cause": "Detailed, technically accurate explanation of why this error happens",
   "problematic_lines": [
@@ -288,7 +241,7 @@ Return ONLY a strictly valid JSON response adhering to this EXACT schema:
   ],
   "corrected_code": "The complete, smallest appropriate corrected code preserving formatting and structure",
   "changes": [
-    "Specific minimal change 1 made to fix the root cause"
+    "Specific minimal change made to fix the root cause"
   ],
   "why_the_fix_works": "Technical justification explaining how this correction resolves the root cause without side effects",
   "test_cases": [
