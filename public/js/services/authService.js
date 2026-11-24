@@ -149,15 +149,35 @@ class AuthService {
         if (error) throw error;
 
         if (data?.url) {
-          // Pre-flight check the authorize URL to prevent raw black JSON error page
+          // Pre-flight verify whether the OAuth provider is enabled in Supabase
+          // to avoid leaving the user stranded on a raw black Supabase JSON error page.
           try {
-            const probeRes = await fetch(data.url, { method: 'HEAD', mode: 'no-cors' });
-            // In case we can inspect it or it was allowed:
+            const probeRes = await fetch(data.url, { method: 'GET' });
+            if (probeRes.status === 400 || probeRes.status === 422) {
+              const errBody = await probeRes.json().catch(() => ({}));
+              const msg = errBody.msg || errBody.message || '';
+              if (msg.includes('provider is not enabled') || errBody.error_code === 'validation_failed') {
+                throw new Error(
+                  'Google Sign-In is not enabled yet in your Supabase dashboard (kcbfwckcolewpfanunez).\n\n' +
+                  'To enable:\n' +
+                  '1. Go to Supabase Dashboard > Authentication > Providers > Google\n' +
+                  '2. Toggle the "Enable Sign in with Google" switch to ON\n' +
+                  '3. Paste your Google Client ID and Secret, and click "Save" at the bottom\n\n' +
+                  'You can click "Continue as Demo Developer (Instant)" below to test the app right away!'
+                );
+              }
+              throw new Error(msg || `Supabase Auth error (${probeRes.status})`);
+            }
           } catch (probeErr) {
-            console.warn('[AuthService] Pre-flight probe note:', probeErr);
+            // If the probe explicitly detected an error from Supabase, re-throw so the app banner catches it
+            if (probeErr.message?.includes('Google Sign-In is not enabled') || probeErr.message?.includes('Supabase Auth error')) {
+              throw probeErr;
+            }
+            // A TypeError / NetworkError during fetch is expected and normal in browsers when Supabase redirects (302)
+            // across origins to https://accounts.google.com due to CORS policies. This means the provider is active!
           }
 
-          // Navigate to Google OAuth
+          // Safe to navigate to Google OAuth
           window.location.href = data.url;
         } else {
           throw new Error('Supabase did not return an OAuth authorization URL.');

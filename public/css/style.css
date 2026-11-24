@@ -4313,12 +4313,13 @@ body {
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   color: #F87171;
   font-size: 0.76rem;
   text-align: left;
-  line-height: 1.35;
+  line-height: 1.45;
+  white-space: pre-line;
 }
 
 .auth-features-preview {
