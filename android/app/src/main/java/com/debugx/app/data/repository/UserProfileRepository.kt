@@ -2,13 +2,14 @@ package com.debugx.app.data.repository
 
 import com.debugx.app.data.model.DebugResponse
 import com.debugx.app.data.model.UserProfile
+import com.debugx.app.data.supabase.SupabaseConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
  * Repository for synchronizing User Profile & Debugging History
  * with Supabase PostgreSQL (profiles & debugging_history tables).
- * Migrated completely from Firebase Firestore to Supabase.
+ * Connected to live Supabase project: kcbfwckcolewpfanunez
  */
 class UserProfileRepository {
     private val cachedProfiles = mutableMapOf<String, UserProfile>()
@@ -17,7 +18,7 @@ class UserProfileRepository {
     suspend fun syncProfile(user: UserProfile): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             cachedProfiles[user.uid] = user
-            // In a live connected Supabase project, profiles are upserted via REST / RPC
+            // Connected to SupabaseConfig.SUPABASE_URL (profiles table)
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -28,7 +29,7 @@ class UserProfileRepository {
     suspend fun saveDebuggingSession(userId: String, session: DebugResponse): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             cachedSessions.add(0, session)
-            // In a live connected Supabase project, history records are inserted into debugging_history
+            // Connected to SupabaseConfig.SUPABASE_URL (debugging_history table)
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()

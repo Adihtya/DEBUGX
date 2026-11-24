@@ -1,4 +1,4 @@
-project_id = "debugx-studio"
+project_id = "kcbfwckcolewpfanunez"
 
 [functions.analyze-code]
 verify_jwt = false

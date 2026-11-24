@@ -6,8 +6,8 @@
 */
 
 const DEFAULT_SUPABASE_CONFIG = {
-  url: "https://your-project-ref.supabase.co",
-  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder"
+  url: "https://kcbfwckcolewpfanunez.supabase.co",
+  anonKey: "sb_publishable_kyfpQhHfd3_XSvAUqjrR6Q_UQblvP-g"
 };
 
 class SupabaseManager {
