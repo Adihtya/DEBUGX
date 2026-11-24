@@ -73,11 +73,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER on_profiles_updated
+DROP TRIGGER IF EXISTS on_profiles_updated ON public.profiles;
+CREATE TRIGGER on_profiles_updated
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-CREATE OR REPLACE TRIGGER on_user_preferences_updated
+DROP TRIGGER IF EXISTS on_user_preferences_updated ON public.user_preferences;
+CREATE TRIGGER on_user_preferences_updated
     BEFORE UPDATE ON public.user_preferences
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
@@ -121,7 +123,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
@@ -136,47 +139,57 @@ ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.debugging_history ENABLE ROW LEVEL SECURITY;
 
 -- Policies for profiles
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
 CREATE POLICY "Users can view their own profile"
     ON public.profiles FOR SELECT
     USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile"
     ON public.profiles FOR UPDATE
     USING (auth.uid() = id)
     WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile"
     ON public.profiles FOR INSERT
     WITH CHECK (auth.uid() = id);
 
 -- Policies for user_preferences
+DROP POLICY IF EXISTS "Users can view their own preferences" ON public.user_preferences;
 CREATE POLICY "Users can view their own preferences"
     ON public.user_preferences FOR SELECT
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own preferences" ON public.user_preferences;
 CREATE POLICY "Users can insert their own preferences"
     ON public.user_preferences FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own preferences" ON public.user_preferences;
 CREATE POLICY "Users can update their own preferences"
     ON public.user_preferences FOR UPDATE
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
 -- Policies for debugging_history
+DROP POLICY IF EXISTS "Users can view their own debugging history" ON public.debugging_history;
 CREATE POLICY "Users can view their own debugging history"
     ON public.debugging_history FOR SELECT
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert into their debugging history" ON public.debugging_history;
 CREATE POLICY "Users can insert into their debugging history"
     ON public.debugging_history FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own debugging history" ON public.debugging_history;
 CREATE POLICY "Users can update their own debugging history"
     ON public.debugging_history FOR UPDATE
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own debugging history" ON public.debugging_history;
 CREATE POLICY "Users can delete their own debugging history"
     ON public.debugging_history FOR DELETE
     USING (auth.uid() = user_id);
@@ -199,6 +212,7 @@ ON CONFLICT (id) DO UPDATE SET
     allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 
 -- Storage RLS Policies: Path format is {user_id}/{filename}
+DROP POLICY IF EXISTS "Users can upload their own screenshots" ON storage.objects;
 CREATE POLICY "Users can upload their own screenshots"
     ON storage.objects FOR INSERT
     TO authenticated
@@ -207,6 +221,7 @@ CREATE POLICY "Users can upload their own screenshots"
         auth.uid()::text = (storage.foldername(name))[1]
     );
 
+DROP POLICY IF EXISTS "Users can view their own screenshots" ON storage.objects;
 CREATE POLICY "Users can view their own screenshots"
     ON storage.objects FOR SELECT
     TO authenticated
@@ -215,6 +230,7 @@ CREATE POLICY "Users can view their own screenshots"
         auth.uid()::text = (storage.foldername(name))[1]
     );
 
+DROP POLICY IF EXISTS "Users can delete their own screenshots" ON storage.objects;
 CREATE POLICY "Users can delete their own screenshots"
     ON storage.objects FOR DELETE
     TO authenticated
