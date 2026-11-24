@@ -1,6 +1,6 @@
 {
   "name": "debugx",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "DebugX — AI-Powered Developer Tool: Find the Bug. Understand the Cause. Fix with Confidence.",
   "main": "server.js",
   "scripts": {
