@@ -28,6 +28,12 @@ class FirebaseManager {
     this.initPromise = null;
   }
 
+  isPlaceholderConfig() {
+    return !this.config || !this.config.apiKey || 
+      this.config.apiKey.includes('Placeholder') || 
+      this.config.apiKey.startsWith('AIzaSyDebugX');
+  }
+
   loadConfig() {
     try {
       if (window.__DEBUGX_FIREBASE_CONFIG__) {
@@ -64,26 +70,32 @@ class FirebaseManager {
           import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
         ]);
 
-        this.app = initializeApp(this.config);
-        this.auth = getAuth(this.app);
-        this.db = getFirestore(this.app);
-
-        // Try importing Firebase Storage
-        try {
-          const { getStorage, ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
-          this.storage = getStorage(this.app);
-          this.storageRefs = { ref, uploadBytes, getDownloadURL };
-        } catch (storageErr) {
-          console.warn('[FirebaseManager] Storage optional module skipped:', storageErr);
-        }
-
         // Store module utilities for clean access
         this.authOps = { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, deleteUser };
         this.firestoreOps = { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, serverTimestamp, query, orderBy, limit };
         
-        this.isInitialized = true;
-        this.isLiveConnected = true;
-        console.log('[FirebaseManager] Firebase services successfully initialized with project:', this.config.projectId);
+        if (this.isPlaceholderConfig()) {
+          console.info('[FirebaseManager] Placeholder Firebase config detected. Running in graceful Developer mode.');
+          this.isInitialized = true;
+          this.isLiveConnected = false;
+        } else {
+          this.app = initializeApp(this.config);
+          this.auth = getAuth(this.app);
+          this.db = getFirestore(this.app);
+
+          // Try importing Firebase Storage
+          try {
+            const { getStorage, ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+            this.storage = getStorage(this.app);
+            this.storageRefs = { ref, uploadBytes, getDownloadURL };
+          } catch (storageErr) {
+            console.warn('[FirebaseManager] Storage optional module skipped:', storageErr);
+          }
+
+          this.isInitialized = true;
+          this.isLiveConnected = true;
+          console.log('[FirebaseManager] Firebase services successfully initialized with project:', this.config.projectId);
+        }
       } catch (err) {
         console.warn('[FirebaseManager] Live Firebase SDK import encountered an issue (offline or network restriction). Initializing resilient local provider:', err);
         this.isInitialized = true;

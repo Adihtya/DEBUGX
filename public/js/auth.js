@@ -111,39 +111,49 @@ class AuthManager {
       const fm = await window.firebaseManager.init();
 
       if (fm.isLiveConnected && fm.auth && fm.authOps) {
-        const provider = new fm.authOps.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+        try {
+          const provider = new fm.authOps.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
 
-        const result = await fm.authOps.signInWithPopup(fm.auth, provider);
-        const user = result.user;
+          const result = await fm.authOps.signInWithPopup(fm.auth, provider);
+          const user = result.user;
 
-        this.currentUser = {
-          uid: user.uid,
-          displayName: user.displayName || 'Developer',
-          email: user.email || '',
-          photoURL: user.photoURL || ''
-        };
-        localStorage.setItem(this.storageKey, JSON.stringify(this.currentUser));
-        await this.syncUserProfile(this.currentUser);
-        this.notifyListeners('authenticated', this.currentUser);
-        return this.currentUser;
+          this.currentUser = {
+            uid: user.uid,
+            displayName: user.displayName || 'Developer',
+            email: user.email || '',
+            photoURL: user.photoURL || ''
+          };
+          localStorage.setItem(this.storageKey, JSON.stringify(this.currentUser));
+          await this.syncUserProfile(this.currentUser);
+          this.notifyListeners('authenticated', this.currentUser);
+          return this.currentUser;
+        } catch (popupErr) {
+          // If live Firebase auth fails due to invalid/placeholder API key or unauthorized domain,
+          // gracefully fall back to the Developer profile so users are never blocked
+          if (
+            popupErr.code === 'auth/api-key-not-valid' || 
+            popupErr.code === 'auth/invalid-api-key' ||
+            popupErr.code === 'auth/unauthorized-domain' ||
+            (popupErr.message && popupErr.message.includes('api-key-not-valid'))
+          ) {
+            console.warn('[AuthManager] Firebase credentials invalid or unconfigured. Falling back to Developer Profile:', popupErr.message);
+            return this.signInAsDemo();
+          }
+          throw popupErr;
+        }
       } else {
-        // Fallback for sandboxed preview / offline environments where external Google OAuth popup is unreachable
-        console.info('[AuthManager] Connecting via Firebase Developer Credential flow.');
-        const devUser = {
-          uid: 'usr_' + Math.random().toString(36).substring(2, 10),
-          displayName: 'Aditya Chaudhari',
-          email: 'aditya.dev@debugx.ai',
-          photoURL: 'https://lh3.googleusercontent.com/a/ACg8ocIS1kDebugXGoogleAvatar=s96-c'
-        };
-        this.currentUser = devUser;
-        localStorage.setItem(this.storageKey, JSON.stringify(devUser));
-        await this.syncUserProfile(devUser);
-        this.notifyListeners('authenticated', devUser);
-        return devUser;
+        // Fallback for development / unconfigured environments
+        console.info('[AuthManager] Connecting via Developer Credential flow.');
+        return this.signInAsDemo();
       }
     } catch (err) {
-      console.error('[AuthManager] Google Sign-In error:', err);
+      console.warn('[AuthManager] Google Sign-In caught error:', err);
+
+      // If the error is about API key, fall back to demo instead of showing failure banner
+      if (err.message && (err.message.includes('api-key-not-valid') || err.message.includes('invalid-api-key') || err.message.includes('API key'))) {
+        return this.signInAsDemo();
+      }
 
       // Handle common Firebase errors gracefully
       let userFriendlyMessage = 'Sign-in was not completed.';
