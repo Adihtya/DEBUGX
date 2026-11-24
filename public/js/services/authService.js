@@ -122,6 +122,25 @@ class AuthService {
   }
 
   /**
+   * Checks whether Google provider is active in the Supabase project
+   */
+  async isGoogleProviderEnabled() {
+    try {
+      const url = `${window.supabaseManager?.config?.url || 'https://kcbfwckcolewpfanunez.supabase.co'}/auth/v1/settings`;
+      const res = await fetch(url, {
+        headers: { 'apikey': window.supabaseManager?.config?.anonKey }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return Boolean(data?.external?.google);
+      }
+    } catch (e) {
+      console.warn('[AuthService] Could not check Google provider status:', e);
+    }
+    return true; // Fallback to allowing standard flow if probe is blocked
+  }
+
+  /**
    * Google OAuth Sign In via Supabase Auth
    */
   async signInWithGoogle() {
@@ -133,6 +152,16 @@ class AuthService {
 
     if (client && window.supabaseManager.isLiveConnected) {
       try {
+        // 1. Proactively check if Google OAuth is enabled in Supabase to prevent raw JSON error pages
+        const isEnabled = await this.isGoogleProviderEnabled();
+        if (!isEnabled) {
+          this.isAuthenticating = false;
+          this.notifyListeners('error', {
+            message: 'Google Sign-In is not enabled yet in your Supabase project. Enable it under Authentication > Providers > Google in your Supabase dashboard, or click "Continue as Demo Developer (Instant)" below to test immediately.'
+          });
+          return;
+        }
+
         const { data, error } = await client.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -147,8 +176,11 @@ class AuthService {
         if (error) throw error;
         return data;
       } catch (err) {
-        console.warn('[AuthService] Live Supabase Google OAuth failed, falling back to Demo mode:', err);
-        return this.signInAsDemo();
+        console.warn('[AuthService] Live Supabase Google OAuth failed:', err);
+        this.isAuthenticating = false;
+        this.notifyListeners('error', {
+          message: err.message || 'Google OAuth failed. You can use Demo Mode below.'
+        });
       } finally {
         this.isAuthenticating = false;
       }
