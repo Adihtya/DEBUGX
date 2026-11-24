@@ -901,11 +901,63 @@ class AppController {
         const textSpan = document.getElementById('copyFixBtnText');
         if (textSpan) textSpan.textContent = 'Copied!';
         setTimeout(() => {
-          if (textSpan) textSpan.textContent = 'Copy Code';
+          if (textSpan) textSpan.textContent = 'Copy Fix';
         }, 2000);
         this.showToast("Fixed code copied to clipboard", "success");
       } catch (e) {
         this.showToast("Failed to copy code to clipboard", "error");
+      }
+    });
+
+    // Run / Verify Fix button
+    document.getElementById('verifyFixBtn')?.addEventListener('click', async () => {
+      const codeEl = document.getElementById('resCorrectedCode');
+      const code = codeEl?.textContent || '';
+      if (!code || code.includes('Unable to generate verified correction') || code.startsWith('# Code is already clean')) {
+        this.showToast("No executable fix available to verify.", "warning");
+        return;
+      }
+
+      const btn = document.getElementById('verifyFixBtn');
+      const textSpan = document.getElementById('verifyFixBtnText');
+      const fixStatusPill = document.getElementById('resFixVerificationStatus');
+
+      if (btn) btn.disabled = true;
+      if (textSpan) textSpan.textContent = 'Verifying...';
+
+      try {
+        const lang = this.currentSession?.data?.language || 'Python';
+        const expectedOutput = this.currentSession?.data?.expected_output || null;
+
+        const res = await fetch('/api/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language: lang, expectedOutput })
+        });
+
+        const execData = await res.json();
+        if (execData.executed && !execData.hasError && (expectedOutput ? execData.outputMatches === true : true)) {
+          if (fixStatusPill) {
+            fixStatusPill.className = 'status-pill status-verified';
+            fixStatusPill.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+            fixStatusPill.style.color = '#4ADE80';
+            fixStatusPill.textContent = '✓ Verified in Sandbox';
+          }
+          this.showToast(`Fix verified successfully! (Exit 0${execData.stdout ? `, stdout: ${execData.stdout.trim()}` : ''})`, "success");
+        } else {
+          if (fixStatusPill) {
+            fixStatusPill.className = 'status-pill status-failed';
+            fixStatusPill.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+            fixStatusPill.style.color = '#F87171';
+            fixStatusPill.textContent = '✗ Fix Execution Failed';
+          }
+          this.showToast(`Fix verification failed: ${execData.errorMessage || execData.stderr || 'Runtime error'}`, "error");
+        }
+      } catch (err) {
+        this.showToast("Verification request failed: " + err.message, "error");
+      } finally {
+        if (btn) btn.disabled = false;
+        if (textSpan) textSpan.textContent = 'Run / Verify Fix';
       }
     });
 
@@ -1067,8 +1119,57 @@ class AppController {
       originalPre.innerHTML = highlighted || `<code>${this.escapeHtml(data.original_code || '')}</code>`;
     }
 
-    // Suggested Fix
-    document.getElementById('resCorrectedCode').textContent = data.corrected_code || data.original_code || '# No changes required';
+    // Maintain strictly independent state variables
+    const originalCode = data.original_code || '';
+    const detectedErrors = data.issues || [];
+    const errorExplanation = data.root_cause || data.error_summary || '';
+    const suggestedFix = (data.changes && data.changes[0]) || data.why_the_fix_works || '';
+    const correctedCode = data.corrected_code || data.correctedCode || '';
+    const validationStatus = data.validationStatus || data.status || 'POSSIBLE LOGIC ERROR';
+
+    const isClean = Boolean(
+      (data.error_type?.includes('Clean Code') || data.error_summary?.includes('No confirmed bug') || data.summary?.includes('No confirmed bug')) &&
+      detectedErrors.length === 0
+    );
+
+    const resCorrectedCodeEl = document.getElementById('resCorrectedCode');
+    const fixStatusPill = document.getElementById('resFixVerificationStatus');
+
+    if (isClean) {
+      resCorrectedCodeEl.textContent = originalCode || '# Code is already clean and verified.';
+      if (fixStatusPill) {
+        fixStatusPill.className = 'status-pill status-verified';
+        fixStatusPill.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+        fixStatusPill.style.color = '#4ADE80';
+        fixStatusPill.textContent = '✓ No Changes Required';
+      }
+    } else if (correctedCode && correctedCode.trim() && correctedCode.trim() !== originalCode.trim()) {
+      // Real surgical correction available
+      resCorrectedCodeEl.textContent = correctedCode;
+      if (fixStatusPill) {
+        const isVerified = (data.verification?.status === 'VERIFIED' || data.verification_status === 'VERIFIED');
+        if (isVerified) {
+          fixStatusPill.className = 'status-pill status-verified';
+          fixStatusPill.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+          fixStatusPill.style.color = '#4ADE80';
+          fixStatusPill.textContent = '✓ Verified in Sandbox';
+        } else {
+          fixStatusPill.className = 'status-pill status-unverified';
+          fixStatusPill.style.backgroundColor = 'rgba(234, 179, 8, 0.2)';
+          fixStatusPill.style.color = '#FACC15';
+          fixStatusPill.textContent = '⚠ Proposed (Unverified)';
+        }
+      }
+    } else {
+      // Clear error message when automated fix could not be generated
+      resCorrectedCodeEl.innerHTML = '<span class="text-error" style="color: #F87171; font-style: italic;">⚠️ Unable to generate verified correction. Please review the manual fix recommendations above.</span>';
+      if (fixStatusPill) {
+        fixStatusPill.className = 'status-pill status-failed';
+        fixStatusPill.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+        fixStatusPill.style.color = '#F87171';
+        fixStatusPill.textContent = '✗ No Verified Fix Available';
+      }
+    }
 
     // Observable Evidence List
     const evidenceList = document.getElementById('resEvidenceList');

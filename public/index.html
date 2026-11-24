@@ -702,15 +702,24 @@ print(numbers[5])" spellcheck="false"></textarea>
 
           <!-- E. SUGGESTED FIX -->
           <div class="result-card">
-            <div class="card-section-header">
-              <div class="section-icon-badge icon-green">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <div class="card-section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="section-icon-badge icon-green">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 class="card-title">Corrected Code &amp; Fix</h3>
+                <span id="resFixVerificationStatus" class="status-pill status-unverified" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; text-transform: uppercase;">Unverified</span>
               </div>
-              <h3 class="card-title">Suggested Fix</h3>
-              <button class="btn btn-sm btn-secondary copy-fix-btn" id="copyFixBtn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-                <span id="copyFixBtnText">Copy Code</span>
-              </button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn btn-sm btn-outline" id="verifyFixBtn" title="Run and verify this fix in the sandbox" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span id="verifyFixBtnText">Run / Verify Fix</span>
+                </button>
+                <button class="btn btn-sm btn-secondary copy-fix-btn" id="copyFixBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                  <span id="copyFixBtnText">Copy Fix</span>
+                </button>
+              </div>
             </div>
             <div class="code-viewer success-block">
               <div class="viewer-header">
