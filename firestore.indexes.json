@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "debuggingHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isSaved", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

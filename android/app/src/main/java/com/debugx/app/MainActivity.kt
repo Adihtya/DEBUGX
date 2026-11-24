@@ -26,6 +26,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.collectAsState
+import com.debugx.app.data.model.AuthState
 import com.debugx.app.ui.navigation.Screen
 import com.debugx.app.ui.screens.*
 import com.debugx.app.ui.theme.*
@@ -36,8 +38,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val debugViewModel: DebugViewModel = viewModel()
+            val authState by debugViewModel.authState.collectAsState()
+
             DebugXTheme {
-                MainAppScreen(viewModel = debugViewModel)
+                when (authState) {
+                    is AuthState.Authenticated -> {
+                        MainAppScreen(viewModel = debugViewModel)
+                    }
+                    else -> {
+                        WelcomeScreen(viewModel = debugViewModel)
+                    }
+                }
             }
         }
     }

@@ -6,17 +6,19 @@
 
 **Find the Bug. Understand the Cause. Fix with Confidence.**
 
-[![AI - Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-8B5CF6?style=for-the-badge&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
+[![AI - Google Gemini & Firebase AI Logic](https://img.shields.io/badge/AI-Firebase%20AI%20Logic%20%7C%20Gemini-8B5CF6?style=for-the-badge&logo=google-gemini&logoColor=white)](https://firebase.google.com/)
+[![Auth - Firebase Google Sign--In](https://img.shields.io/badge/Auth-Firebase%20%2B%20Google-FFA611?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Database - Cloud Firestore](https://img.shields.io/badge/Database-Cloud%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Platform - Android & Web](https://img.shields.io/badge/Platform-Android%20%7C%20Web-38BDF8?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Adihtya/DEBUGX)
-[![Release - v1.2.0](https://img.shields.io/badge/Release-v1.2.0%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Adihtya/DEBUGX/releases/latest)
+[![Release - v1.3.0](https://img.shields.io/badge/Release-v1.3.0%20APK-22C55E?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Adihtya/DEBUGX/releases/latest)
 [![Kotlin - Jetpack Compose](https://img.shields.io/badge/Android-Jetpack%20Compose-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Node.js Server](https://img.shields.io/badge/Web-Node.js%20%2B%20Vanilla%20JS-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 <br/>
 
-[📱 **Download Android APK (v1.2.0)**](https://github.com/Adihtya/DEBUGX/releases/download/v1.2.0/app-debug.apk) &nbsp; • &nbsp;
+[📱 **Download Android APK (v1.3.0)**](https://github.com/Adihtya/DEBUGX/releases/download/v1.3.0/app-debug.apk) &nbsp; • &nbsp;
 [🌐 **Live Web App**](#-quick-start) &nbsp; • &nbsp;
 [✨ **Features**](#-features) &nbsp; • &nbsp;
+[🔐 **Auth & AI Architecture**](#-authentication--automatic-gemini-connection) &nbsp; • &nbsp;
 [🧠 **Explain My Code**](#-feature-spotlight-explain-my-code) &nbsp; • &nbsp;
 [🚀 **Installation**](#-installation--build)
 
@@ -34,12 +36,24 @@
 
 Whether you are debugging compiler errors on your laptop screen via your smartphone camera, pasting broken algorithms into the interactive web workbench, or stepping through loop iterations line-by-line, DebugX provides the clarity you need.
 
+With **v1.3.0**, DebugX features enterprise-grade **Google Sign-In with Firebase Authentication**, **Cloud Firestore profile & history sync**, and **Automatic Gemini Connection via Firebase AI Logic**—delivering zero-friction AI intelligence with **no manual API keys required from users**.
+
 ---
 
 ## 02. Features
 
 <table>
 <tr>
+<td width="50%" valign="top">
+
+### 🔐 Google Auth & Automatic AI *(v1.3.0)*
+- **One-Tap Google Authentication**: Credential Manager for native Android & Firebase Auth Google Provider for Web.
+- **Zero Manual API Keys**: Automatic Gemini connection initialized via Firebase project configuration.
+- **Cloud Firestore Synchronization**: Cloud-synced user profiles (`users/{uid}`) and debugging history sessions.
+- **Production-Grade Security Rules**: Strict client data isolation and DoS mitigation for Firestore and Cloud Storage.
+- **Live AI Engine Status**: Real-time connection badge with latency diagnostics and automatic retry.
+
+</td>
 <td width="50%" valign="top">
 
 ### 🧠 Explain My Code *(v1.2.0)*
@@ -51,6 +65,8 @@ Whether you are debugging compiler errors on your laptop screen via your smartph
 - **Dual Explanation Modes**: *Beginner Mode* (plain English & analogies) or *Advanced Mode* (AST, memory & performance).
 
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 
 ### 📸 Live Camera & Snap-to-Debug *(v1.1.0)*
@@ -61,8 +77,6 @@ Whether you are debugging compiler errors on your laptop screen via your smartph
 - **Hybrid Input**: Combine captured camera photos with pasted code for complete context.
 
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 
 ### 🐛 AI Code Debugger
@@ -72,6 +86,8 @@ Whether you are debugging compiler errors on your laptop screen via your smartph
 - **Multi-language Support**: Python, JavaScript, Java, C++, Kotlin, Go, Rust, TypeScript, and more.
 
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 
 ### 💬 Interactive AI Follow-up Chat
@@ -80,22 +96,13 @@ Whether you are debugging compiler errors on your laptop screen via your smartph
 - **Concept Deep-Dives**: Ask about language idioms, memory safety, or edge cases.
 
 </td>
-</tr>
-<tr>
 <td width="50%" valign="top">
 
-### 📚 Learning Centre
+### 📚 Learning Centre & History
 - **Categorized Error Knowledge Base**: Common pitfalls across JavaScript, Python, C++, and Java.
 - **Interactive Bug Challenges**: Real-world buggy snippets to test your diagnostic skills.
 - **Practice Quizzes**: Instant feedback on debugging logic and compiler mechanics.
-
-</td>
-<td width="50%" valign="top">
-
-### 📂 History & Session Management
-- **Local Offline Persistence**: All debugging and explanation sessions cached locally.
-- **Instant Search & Filter**: Search past sessions by code snippet, language, or error keyword.
-- **Export to JSON**: Download session histories for documentation or team sharing.
+- **Multi-tier Persistence**: Seamless offline caching with cloud Firestore sync for logged-in accounts.
 
 </td>
 </tr>
@@ -103,9 +110,57 @@ Whether you are debugging compiler errors on your laptop screen via your smartph
 
 ---
 
-## 03. Feature Spotlight: Explain My Code
+## 03. Authentication & Automatic Gemini Connection
 
-DebugX v1.2.0 introduces **Explain My Code**—an interactive code intelligence engine designed to make complex algorithms crystal clear.
+DebugX v1.3.0 implements a frictionless user onboarding experience powered by **Firebase Authentication** and **Firebase AI Logic**:
+
+```
+┌─────────────────────────────────┐
+│     Welcome Screen (DebugX)     │
+│   "Find the Bug. Understand..." │
+└────────────────┬────────────────┘
+                 │
+                 ▼  [Continue with Google]
+┌─────────────────────────────────┐
+│     Google Sign-In Dialog       │
+│   (Credential Manager / OAuth)  │
+└────────────────┬────────────────┘
+                 │
+                 ▼  [Firebase Auth Success]
+┌─────────────────────────────────┐      ┌─────────────────────────────────┐
+│    Cloud Firestore Sync         │      │    Firebase AI Logic Init       │
+│    Create/Update users/{uid}    │◄────►│    Connects Gemini 1.5 Flash    │
+│    Sync debugging sessions      │      │    Verified AI Engine: Online   │
+└────────────────┬────────────────┘      └────────────────┬────────────────┘
+                 │                                        │
+                 └───────────────────┬────────────────────┘
+                                     │
+                                     ▼
+                     ┌───────────────────────────────┐
+                     │       DebugX Dashboard        │
+                     │  Ready for Instant Debugging  │
+                     └───────────────────────────────┘
+```
+
+### Key Architectural Highlights:
+1. **Zero User-Facing API Keys**: Users are never asked to generate, paste, or configure Gemini API keys. Access is governed securely through Firebase backend configuration.
+2. **Modular AI Service Layer**:
+   - `GeminiService`: Coordinates model lifecycle and request execution.
+   - `ScreenshotAnalyzer`: Processes camera captures and screenshots multimodally.
+   - `CodeAnalyzer`: Analyzes syntax trees, logical flows, and compiler traces.
+   - `ErrorExplainer`: Generates tailored beginner or advanced breakdowns.
+   - `CodeCorrectionService`: Produces formatted code diffs and remedial steps.
+   - `AIChatService`: Manages conversational session history.
+   - `DebuggingRepository`: Bridges local storage with Cloud Firestore.
+3. **Hardened Security Rules**:
+   - `firestore.rules`: Strict user data isolation (`request.auth.uid == uid`), length constraints, and schema validation.
+   - `storage.rules`: Isolated user screenshot buckets with MIME type enforcement and size limits (<10MB).
+
+---
+
+## 04. Feature Spotlight: Explain My Code
+
+DebugX includes **Explain My Code**—an interactive code intelligence engine designed to make complex algorithms crystal clear.
 
 ```
 ┌─────────────────────────────────┬─────────────────────────────────┐
@@ -126,33 +181,30 @@ DebugX v1.2.0 introduces **Explain My Code**—an interactive code intelligence 
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Capabilities:
-1. **Interactive Line Sync**: Tapping any line in the code editor highlights its corresponding explanation card, and vice-versa.
-2. **Variable Intelligence**: Inspect variable lifecycle, assignments, and mutations across scopes.
-3. **Loop & Function Visualizer**: View iteration-by-iteration state changes and function call hierarchies.
-4. **Honest Output Notice**: DebugX explicitly flags whether output was statically derived via AI AST analysis or measured in a secure sandbox execution environment.
-
 ---
 
-## 04. Technology Stack
+## 05. Technology Stack
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Android Application** | Kotlin, Jetpack Compose, Material 3, CameraX, Kotlin Coroutines, StateFlow, ViewModel |
-| **Web Application** | HTML5, CSS3 (Modern Dark Theme `#090909`), JavaScript (ES2022), Express.js (Node.js) |
-| **Artificial Intelligence** | Google Gemini 1.5 Flash (`google-generativeai` SDK), Multimodal Vision API |
-| **CI / CD Automation** | GitHub Actions, Gradle Wrapper, Automated APK Artifact & Release Pipeline |
+| **Android Application** | Kotlin, Jetpack Compose, Material 3, CameraX, Credential Manager, StateFlow, ViewModel |
+| **Web Application** | HTML5, CSS3 (Theme `#090909`), JavaScript (ES2022 Modular), Express.js (Node.js) |
+| **Authentication** | Firebase Authentication (Google Sign-In Provider & Android Credential Manager) |
+| **Database & Storage** | Cloud Firestore, Firebase Cloud Storage, IndexedDB / LocalStorage fallback |
+| **Artificial Intelligence** | Firebase AI Logic, Google Gemini 1.5 Flash, Multimodal Vision API |
+| **Security & Governance** | Firestore Security Rules, Cloud Storage Security Rules, Firebase App Check readiness |
+| **CI / CD Automation** | GitHub Actions, Automated Gradle assembleDebug pipeline, GitHub Releases |
 
 ---
 
-## 05. Quick Start
+## 06. Quick Start
 
 ### 📱 Android Application (Direct APK Install)
 
 1. Download the latest debug APK from the releases page:
-   **[Download DebugX v1.2.0 APK](https://github.com/Adihtya/DEBUGX/releases/download/v1.2.0/app-debug.apk)**
+   **[Download DebugX v1.3.0 APK](https://github.com/Adihtya/DEBUGX/releases/download/v1.3.0/app-debug.apk)**
 2. On your Android device, allow installation from unknown sources if prompted.
-3. Open DebugX and start debugging!
+3. Open DebugX, tap **Continue with Google**, and start debugging!
 
 ---
 
@@ -194,28 +246,14 @@ android/app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-## 06. Google Gemini API Configuration
-
-DebugX includes built-in offline mock fallbacks for all features, so you can explore the UI immediately. To connect live Gemini AI analysis:
-
-1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
-2. In the DebugX Web App or Android App:
-   - Navigate to the **Profile / Settings** tab.
-   - Enter your Gemini API key in the input field.
-   - Click **Save Key**.
-3. All debugging, vision OCR, and code explanation requests will now use live Gemini 1.5 Flash models.
-
-*(Your key is stored securely in your device's local storage and is never transmitted to any third-party servers).*
-
----
-
 ## 07. Project Roadmap
 
 - [x] **v1.0.0**: Core AI Code Debugger, Error Classification, Fix Generator, Learning Centre, Offline History
 - [x] **v1.1.0**: Live Camera Capture (CameraX on Android, `getUserMedia` on Web), Screen Error Scanning, Image Upload
 - [x] **v1.2.0**: Feature 3: Explain My Code (Line-by-line sync, Loop/Function visualizers, Variable tracking, Complexity analysis, Ask AI)
-- [ ] **v1.3.0**: Sandboxed WASM / Piston in-browser code execution runtime
-- [ ] **v1.4.0**: IDE Extensions (VS Code & JetBrains plugins)
+- [x] **v1.3.0**: Firebase Authentication (Google Sign-In), Cloud Firestore Sync, Automatic Gemini Connection via Firebase AI Logic, Hardened Security Rules
+- [ ] **v1.4.0**: Sandboxed WASM / Piston in-browser code execution runtime
+- [ ] **v1.5.0**: IDE Extensions (VS Code & JetBrains plugins)
 
 ---
 

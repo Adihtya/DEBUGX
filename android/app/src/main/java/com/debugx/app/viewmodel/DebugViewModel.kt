@@ -1,8 +1,11 @@
 package com.debugx.app.viewmodel
 
+import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.debugx.app.data.auth.AuthManager
 import com.debugx.app.data.model.*
 import com.debugx.app.data.repository.DebugRepository
 import kotlinx.coroutines.delay
@@ -53,8 +56,16 @@ data class ExplainUiState(
 )
 
 class DebugViewModel(
-    private val repository: DebugRepository = DebugRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val authManager = AuthManager(application.applicationContext)
+    private val repository = DebugRepository()
+
+    val authState: StateFlow<AuthState> = authManager.authState
+    val currentUser: StateFlow<UserProfile?> = authManager.currentUser
+    val aiConnectionState: StateFlow<AiConnectionState> = repository.aiConnectionState
+    val aiLatencyMs: StateFlow<Long> = repository.aiLatencyMs
 
     private val _uiState = MutableStateFlow(DebugUiState())
     val uiState: StateFlow<DebugUiState> = _uiState.asStateFlow()
@@ -76,6 +87,46 @@ class DebugViewModel(
     )
     val chatMessages: StateFlow<List<ChatMessage>> = _chatMessages.asStateFlow()
 
+    // -------------------------------------------------------------
+    // Authentication & Profile Actions
+    // -------------------------------------------------------------
+    fun signInWithGoogle(activityContext: Context) {
+        viewModelScope.launch {
+            val result = authManager.signInWithGoogle(activityContext)
+            result.onSuccess { user ->
+                // Sync profile to Cloud Firestore
+                repository.userProfileRepository.syncProfile(user)
+                // Automatically verify AI Logic connection
+                repository.verifyAiConnection()
+            }
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            authManager.signOut()
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val uid = currentUser.value?.uid
+            if (!uid.isNullOrEmpty()) {
+                repository.userProfileRepository.deleteUserData(uid)
+            }
+            authManager.deleteAccount()
+        }
+    }
+
+    fun retryAiConnection() {
+        viewModelScope.launch {
+            repository.verifyAiConnection()
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Debugging Actions
+    // -------------------------------------------------------------
     fun updateCode(code: String) {
         _uiState.value = _uiState.value.copy(codeInput = code)
     }
@@ -131,7 +182,8 @@ class DebugViewModel(
                     code = state.codeInput,
                     screenshot = state.screenshotBitmap,
                     language = state.selectedLanguage,
-                    mode = state.explanationMode
+                    mode = state.explanationMode,
+                    userId = currentUser.value?.uid
                 )
 
                 _uiState.value = _uiState.value.copy(
@@ -160,26 +212,9 @@ class DebugViewModel(
         _chatMessages.value = current + ChatMessage(isUser = true, text = question)
 
         viewModelScope.launch {
-            delay(600)
-            val reply = generateContextualChatReply(question)
-            _chatMessages.value = _chatMessages.value + ChatMessage(isUser = false, text = reply)
-        }
-    }
-
-    private fun generateContextualChatReply(question: String): String {
-        val q = question.lowercase()
-        val err = _uiState.value.analysisResult?.errorTitle ?: "Error"
-        val lang = _uiState.value.analysisResult?.language ?: "Python"
-
-        return when {
-            q.contains("line by line") || q.contains("explain") ->
-                "Here is the breakdown for your $lang code:\n1. Sequence allocation occurs.\n2. The line triggering $err accesses memory beyond capacity.\n3. The guard check prevents the crash."
-            q.contains("another way") || q.contains("alternative") ->
-                "Alternative approach: Wrap in a try-except block, or iterate directly using 'for item in items:' without manual indices."
-            q.contains("optimise") ->
-                "Bounds checking with 'len() > index' costs O(1) cycles. Exception unwinding is considerably more expensive."
-            else ->
-                "Regarding your question on $err: Ensure defensive validation guards are placed before accessing dynamic indices."
+            delay(400)
+            val reply = repository.askChat(question)
+            _chatMessages.value = _chatMessages.value + reply
         }
     }
 
@@ -189,6 +224,9 @@ class DebugViewModel(
         onNavigate()
     }
 
+    // -------------------------------------------------------------
+    // Explain My Code Actions
+    // -------------------------------------------------------------
     fun updateExplainCode(code: String) {
         _explainUiState.value = _explainUiState.value.copy(codeInput = code)
     }
@@ -249,8 +287,7 @@ class DebugViewModel(
                 )
                 _explainUiState.value = _explainUiState.value.copy(
                     isLoading = false,
-                    explanationResult = result,
-                    selectedLine = result.lineExplanations.firstOrNull()?.line ?: 1
+                    explanationResult = result
                 )
                 onSuccess()
             } catch (e: Exception) {
@@ -262,7 +299,7 @@ class DebugViewModel(
         }
     }
 
-    fun sendExplainQuestion(question: String) {
+    fun sendExplainFollowUp(question: String) {
         if (question.isBlank()) return
         val current = _explainUiState.value.followUpQuestions
         _explainUiState.value = _explainUiState.value.copy(
@@ -271,29 +308,10 @@ class DebugViewModel(
 
         viewModelScope.launch {
             delay(500)
-            val lang = _explainUiState.value.selectedLanguage
-            val q = question.lowercase()
-            val reply = when {
-                q.contains("time") || q.contains("space") || q.contains("complexity") ->
-                    "For this $lang algorithm, time complexity is ${_explainUiState.value.explanationResult?.complexity?.time ?: "O(n)"} because ${_explainUiState.value.explanationResult?.complexity?.timeReasoning ?: "of statement executions"}, and auxiliary space is ${_explainUiState.value.explanationResult?.complexity?.space ?: "O(1)"}."
-                q.contains("why") || q.contains("loop") || q.contains("while") ->
-                    "The loop construct maintains invariant bounds on each pass, preventing infinite repetition and guaranteeing logarithmic termination."
-                q.contains("overflow") || q.contains("bug") ->
-                    "In statically typed languages like Java or C++, calculating (low + high) can overflow if integers exceed 2^31 - 1. A safer pattern is 'low + (high - low) / 2'."
-                else ->
-                    "Great question! In $lang, this logic safely computes the result using structured control flow and minimal heap allocation."
-            }
+            val replyText = "For this algorithm: Always ensure boundary conditions low <= high are strictly maintained."
             _explainUiState.value = _explainUiState.value.copy(
-                followUpQuestions = _explainUiState.value.followUpQuestions + ChatMessage(isUser = false, text = reply)
+                followUpQuestions = _explainUiState.value.followUpQuestions + ChatMessage(isUser = false, text = replyText)
             )
         }
-    }
-
-    fun deleteHistoryItem(item: DebugResponse) {
-        repository.deleteHistoryItem(item)
-    }
-
-    fun clearHistory() {
-        repository.clearHistory()
     }
 }

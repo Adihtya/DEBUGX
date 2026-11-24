@@ -2,10 +2,16 @@ package com.debugx.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,9 +24,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.debugx.app.data.model.AiConnectionState
 import com.debugx.app.ui.theme.*
 import com.debugx.app.viewmodel.DebugViewModel
 
@@ -28,9 +34,13 @@ import com.debugx.app.viewmodel.DebugViewModel
 fun ProfileScreen(
     viewModel: DebugViewModel
 ) {
-    var apiKeyText by remember { mutableStateOf("") }
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    val currentUser by viewModel.currentUser.collectAsState()
+    val aiState by viewModel.aiConnectionState.collectAsState()
+    val aiLatency by viewModel.aiLatencyMs.collectAsState()
+
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -60,25 +70,43 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(AccentPrimary, AccentSecondary))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("AD", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    if (!currentUser?.photoURL.isNullOrEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = currentUser?.photoURL,
+                            contentDescription = "Profile Photo",
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        val initials = (currentUser?.displayName ?: "DX")
+                            .split(" ")
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .take(2)
+                            .joinToString("")
+                            .uppercase()
+
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(listOf(AccentPrimary, AccentSecondary))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(initials.ifEmpty { "DX" }, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                        }
                     }
+
                     Column {
-                        Text("Aditya Chaudhari", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Senior Full-Stack & Android Engineer", color = AccentSecondary, fontSize = 12.sp)
-                        Text("dev@debugx.ai", color = TextMuted, fontSize = 11.sp)
+                        Text(currentUser?.displayName ?: "Aditya Chaudhari", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(currentUser?.email ?: "dev@debugx.ai", color = AccentSecondary, fontSize = 12.sp)
+                        Text("UID: ${currentUser?.uid?.take(14) ?: "usr_authenticated"}...", color = TextMuted, fontSize = 10.sp)
                     }
                 }
             }
         }
 
-        // Gemini API Configuration
+        // AI Configuration Section (Section 8 Requirement)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -86,34 +114,105 @@ fun ProfileScreen(
                 colors = CardDefaults.cardColors(containerColor = BgCard),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderAccent)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Google Gemini API Key", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Enables live Gemini 1.5 Flash multimodal reasoning.", color = TextSecondary, fontSize = 12.sp)
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("AI Configuration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Automatic integration via Firebase AI Logic. No manual API keys required.", color = TextSecondary, fontSize = 12.sp)
 
-                    OutlinedTextField(
-                        value = apiKeyText,
-                        onValueChange = { apiKeyText = it },
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF090909), RoundedCornerShape(10.dp))
+                            .border(1.dp, BorderColor, RoundedCornerShape(10.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("AI PROVIDER", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Firebase AI Logic", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("CONFIGURED MODEL", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Gemini 1.5 Flash (Multimodal)", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("CONNECTION STATUS", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when (aiState) {
+                                                AiConnectionState.CONNECTED -> Color(0xFF22C55E)
+                                                AiConnectionState.CONNECTING -> Color(0xFFF59E0B)
+                                                AiConnectionState.QUOTA_EXCEEDED -> Color(0xFFEF4444)
+                                                else -> Color(0xFF38BDF8)
+                                            }
+                                        )
+                                )
+                                Text(aiState.label, color = Color(0xFF22C55E), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("LATENCY", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("~${aiLatency}ms", color = Color(0xFFA78BFA), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.retryAiConnection()
+                            Toast.makeText(context, "Verifying AI connection...", Toast.LENGTH_SHORT).show()
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("AIzaSy... (leave empty for intelligent demo engine)", fontSize = 12.sp, color = TextMuted) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = BgInput,
-                            unfocusedContainerColor = BgInput,
-                            focusedBorderColor = AccentPrimary,
-                            unfocusedBorderColor = BorderColor
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7957FF))
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Test / Verify AI Connection", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // Account & Security Management Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = BgCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Account & Security", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
                     Button(
                         onClick = {
-                            viewModel.setApiKey(apiKeyText)
-                            Toast.makeText(context, "API Key updated", Toast.LENGTH_SHORT).show()
+                            viewModel.signOut()
+                            Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1E1E), contentColor = Color.White)
                     ) {
-                        Text("Save Key")
+                        Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Sign Out", fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            showDeleteConfirmDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x66EF4444))
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Delete Account & Cloud Data", fontSize = 13.sp)
                     }
                 }
             }
@@ -143,33 +242,57 @@ fun ProfileScreen(
                         ) {
                             Text(
                                 "cd android && ./gradlew assembleDebug",
-                                color = AccentSecondary,
+                                color = Color(0xFF67E8F9),
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             )
-                            TextButton(onClick = {
-                                clipboard.setText(AnnotatedString("cd android && ./gradlew assembleDebug"))
-                                Toast.makeText(context, "Command copied!", Toast.LENGTH_SHORT).show()
-                            }) {
-                                Text("Copy", color = Color.White, fontSize = 11.sp)
-                            }
+                            Text(
+                                "Copy",
+                                color = AccentSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    clipboard.setText(AnnotatedString("cd android && ./gradlew assembleDebug"))
+                                    Toast.makeText(context, "Command copied!", Toast.LENGTH_SHORT).show()
+                                }
+                            )
                         }
                     }
-                    Text("APK output location: android/app/build/outputs/apk/debug/app-debug.apk", color = TextMuted, fontSize = 11.sp)
                 }
             }
         }
+    }
 
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("DebugX v1.0.0 (Production Release)", color = TextMuted, fontSize = 11.sp)
-                Text("Google Gemini Multimodal Developer Edition", color = TextMuted, fontSize = 10.sp)
-            }
-        }
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Delete Account?", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete your account? This will erase your Cloud Firestore developer profile and debugging history.",
+                    color = Color(0xFFB3B3B3),
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        viewModel.deleteAccount()
+                        Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("Delete Everything", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancel", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF141414)
+        )
     }
 }

@@ -15,6 +15,7 @@ class AppController {
 
   init() {
     this.initClock();
+    this.initAuth();
     this.bindNavigation();
     this.bindCamera();
     this.bindExplain();
@@ -27,6 +28,152 @@ class AppController {
     this.bindDeviceFrameToggle();
     this.renderHome();
     this.updateApiStatusIndicator();
+  }
+
+  // --- Authentication & User Session Lifecycle ---
+  initAuth() {
+    if (!window.authManager) return;
+
+    window.authManager.init();
+
+    window.authManager.onAuthStateChanged((state, user) => {
+      const welcomeScreen = document.getElementById('screenWelcome');
+      const bottomNav = document.querySelector('.android-bottom-nav');
+      const gesturePill = document.querySelector('.android-nav-pill');
+      const googleBtn = document.getElementById('btnGoogleSignIn');
+      const googleSpinner = document.getElementById('googleBtnSpinner');
+      const googleBtnText = document.getElementById('googleBtnText');
+      const errorBanner = document.getElementById('authErrorBanner');
+      const errorText = document.getElementById('authErrorText');
+
+      if (state === 'authenticating') {
+        if (googleSpinner) googleSpinner.style.display = 'inline-block';
+        if (googleBtnText) googleBtnText.textContent = 'Connecting with Google...';
+        if (googleBtn) googleBtn.disabled = true;
+        if (errorBanner) errorBanner.style.display = 'none';
+      } else if (state === 'authenticated' && user) {
+        if (googleSpinner) googleSpinner.style.display = 'none';
+        if (googleBtnText) googleBtnText.textContent = 'Continue with Google';
+        if (googleBtn) googleBtn.disabled = false;
+        if (errorBanner) errorBanner.style.display = 'none';
+
+        // Hide welcome screen & reveal full app navigation
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+        if (bottomNav) bottomNav.style.display = 'flex';
+        if (gesturePill) gesturePill.style.display = 'block';
+
+        // Update User Profile details across the dashboard
+        this.updateUserInterface(user);
+
+        // Automatically verify & initialize Gemini AI Logic
+        window.debuggingRepository?.gemini?.verifyConnection();
+
+        // Switch to dashboard if was on welcome
+        if (this.currentScreen === 'screenWelcome' || !this.currentScreen) {
+          this.switchScreen('screenHome');
+        }
+      } else if (state === 'error') {
+        if (googleSpinner) googleSpinner.style.display = 'none';
+        if (googleBtnText) googleBtnText.textContent = 'Continue with Google';
+        if (googleBtn) googleBtn.disabled = false;
+        if (errorBanner) {
+          errorBanner.style.display = 'flex';
+          if (errorText && user?.message) errorText.textContent = user.message;
+        }
+      } else {
+        // Unauthenticated
+        if (googleSpinner) googleSpinner.style.display = 'none';
+        if (googleBtnText) googleBtnText.textContent = 'Continue with Google';
+        if (googleBtn) googleBtn.disabled = false;
+
+        if (welcomeScreen) welcomeScreen.style.display = 'flex';
+        if (bottomNav) bottomNav.style.display = 'none';
+        if (gesturePill) gesturePill.style.display = 'none';
+
+        const screens = document.querySelectorAll('.app-screen');
+        screens.forEach(s => s.classList.remove('active'));
+        if (welcomeScreen) welcomeScreen.classList.add('active');
+        this.currentScreen = 'screenWelcome';
+      }
+    });
+
+    // Google Sign-In Action
+    document.getElementById('btnGoogleSignIn')?.addEventListener('click', async () => {
+      try {
+        await window.authManager.signInWithGoogle();
+        this.showToast("Google account authenticated!", "success");
+      } catch (err) {
+        console.warn("Sign-in issue handled by listener:", err);
+      }
+    });
+
+    // Sign Out Action
+    document.getElementById('btnSignOut')?.addEventListener('click', async () => {
+      await window.authManager.signOut();
+      this.showToast("Signed out successfully", "info");
+    });
+
+    // Delete Account Actions
+    document.getElementById('btnDeleteAccount')?.addEventListener('click', () => {
+      const modal = document.getElementById('deleteAccountModal');
+      if (modal) modal.style.display = 'flex';
+    });
+
+    document.getElementById('cancelDeleteAccountBtn')?.addEventListener('click', () => {
+      const modal = document.getElementById('deleteAccountModal');
+      if (modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('confirmDeleteAccountBtn')?.addEventListener('click', async () => {
+      const modal = document.getElementById('deleteAccountModal');
+      if (modal) modal.style.display = 'none';
+      await window.authManager.deleteAccount();
+      this.showToast("Account and debugging records permanently deleted", "info");
+    });
+
+    // Legal Modals
+    document.getElementById('linkPrivacyPolicy')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modal = document.getElementById('privacyModal');
+      if (modal) modal.style.display = 'flex';
+    });
+
+    document.getElementById('closePrivacyModalBtn')?.addEventListener('click', () => {
+      const modal = document.getElementById('privacyModal');
+      if (modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('linkTermsOfService')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modal = document.getElementById('termsModal');
+      if (modal) modal.style.display = 'flex';
+    });
+
+    document.getElementById('closeTermsModalBtn')?.addEventListener('click', () => {
+      const modal = document.getElementById('termsModal');
+      if (modal) modal.style.display = 'none';
+    });
+  }
+
+  updateUserInterface(user) {
+    if (!user) return;
+    const nameEl = document.getElementById('profileName');
+    const emailEl = document.getElementById('profileEmail');
+    const avatarEl = document.getElementById('homeAvatar');
+    const headerGreeting = document.querySelector('.header-subtitle');
+
+    if (nameEl) nameEl.textContent = user.displayName || 'Developer';
+    if (emailEl) emailEl.textContent = user.email || 'developer@debugx.ai';
+    if (headerGreeting) headerGreeting.textContent = `Welcome back, ${user.displayName ? user.displayName.split(' ')[0] : 'Developer'}`;
+
+    if (avatarEl) {
+      if (user.photoURL && user.photoURL.startsWith('http')) {
+        avatarEl.innerHTML = `<img src="${this.escapeHtml(user.photoURL)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      } else {
+        const initials = (user.displayName || 'DX').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        avatarEl.textContent = initials;
+      }
+    }
   }
 
   // --- Real-time Android Status Bar Clock ---
@@ -685,8 +832,9 @@ class AppController {
       // Store current session
       this.currentSession = result;
 
-      // Automatically persist to history if not sample, or as requested
+      // Automatically persist to history and Cloud Firestore
       window.historyManager?.saveSession(result);
+      window.authManager?.saveDebuggingSession(result);
 
       // Render results
       this.renderResults(result);
@@ -708,7 +856,8 @@ class AppController {
     document.getElementById('saveSessionBtn')?.addEventListener('click', () => {
       if (this.currentSession) {
         window.historyManager?.saveSession(this.currentSession);
-        this.showToast("Analysis saved to History!", "success");
+        window.authManager?.saveDebuggingSession(this.currentSession);
+        this.showToast("Analysis saved to History & Cloud Firestore!", "success");
       }
     });
 
@@ -1124,47 +1273,39 @@ class AppController {
     });
   }
 
-  // --- Profile & Settings ---
+  // --- Profile & AI Configuration Management ---
   bindProfile() {
-    const keyInput = document.getElementById('geminiApiKeyInput');
-    if (keyInput) {
-      keyInput.value = window.geminiService?.getApiKey() || '';
-    }
-
-    document.getElementById('toggleApiKeyVisibilityBtn')?.addEventListener('click', () => {
-      if (keyInput) {
-        keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
-      }
-    });
-
-    document.getElementById('saveApiKeyBtn')?.addEventListener('click', () => {
-      const key = keyInput?.value?.trim() || '';
-      window.geminiService?.setApiKey(key);
-      this.updateApiStatusIndicator();
-      this.showToast(key ? "Gemini API Key saved locally" : "Gemini API Key removed. Using local engine.", "success");
-    });
-
-    document.getElementById('testApiKeyBtn')?.addEventListener('click', async () => {
-      const key = keyInput?.value?.trim();
-      const statusMsg = document.getElementById('apiKeyStatusMsg');
-      if (statusMsg) {
-        statusMsg.style.color = 'var(--accent-secondary)';
-        statusMsg.textContent = 'Testing connection...';
+    // Retry / Test AI connection
+    document.getElementById('retryAiConnectionBtn')?.addEventListener('click', async () => {
+      const msgEl = document.getElementById('aiVerificationMsg');
+      const latencyEl = document.getElementById('aiConfigLatency');
+      if (msgEl) {
+        msgEl.style.color = '#7957FF';
+        msgEl.textContent = 'Verifying AI engine connection...';
       }
 
       try {
-        await window.geminiService?.testConnection(key);
-        if (statusMsg) {
-          statusMsg.style.color = 'var(--color-success)';
-          statusMsg.textContent = '✓ Connected to Gemini 1.5 Flash!';
+        const result = await window.debuggingRepository?.gemini?.verifyConnection();
+        if (result && result.success) {
+          if (msgEl) {
+            msgEl.style.color = '#22C55E';
+            msgEl.textContent = `✓ Verified • Ping: ${result.latency}ms`;
+          }
+          if (latencyEl) latencyEl.textContent = `~${result.latency}ms`;
+          this.showToast(`Firebase AI Logic verified (${result.latency}ms)`, "success");
+        } else {
+          if (msgEl) {
+            msgEl.style.color = '#EF4444';
+            msgEl.textContent = `✗ ${result?.error || 'Connection check failed'}`;
+          }
+          this.showToast("AI connection check returned an error", "error");
         }
-        this.showToast("Connection to Gemini API verified!", "success");
-      } catch (e) {
-        if (statusMsg) {
-          statusMsg.style.color = 'var(--color-error)';
-          statusMsg.textContent = `✗ Error: ${e.message}`;
+      } catch (err) {
+        if (msgEl) {
+          msgEl.style.color = '#EF4444';
+          msgEl.textContent = `✗ ${err.message}`;
         }
-        this.showToast("Connection test failed: " + e.message, "error");
+        this.showToast("Connection failed: " + err.message, "error");
       }
     });
 
@@ -1200,12 +1341,33 @@ class AppController {
 
   updateApiStatusIndicator() {
     const textEl = document.getElementById('apiStatusText');
-    const hasKey = window.geminiService?.hasApiKey();
-    if (textEl) {
-      textEl.textContent = hasKey
-        ? 'Gemini 1.5 Flash (Live Key Active)'
-        : 'Gemini Ready (Demo + Intelligent Engine)';
-    }
+    const dotEl = document.querySelector('.indicator-dot');
+    const aiConfigStatus = document.getElementById('aiConfigStatusText');
+    const aiConfigDot = document.getElementById('aiConfigDot');
+
+    window.debuggingRepository?.gemini?.onStatusChange((status, details) => {
+      if (status === 'connected') {
+        if (textEl) textEl.textContent = `AI ENGINE • CONNECTED (${details.latency || 95}ms)`;
+        if (dotEl) { dotEl.style.background = '#22C55E'; dotEl.style.boxShadow = '0 0 8px #22C55E'; }
+        if (aiConfigStatus) aiConfigStatus.textContent = `Connected & Verified (${details.latency || 95}ms)`;
+        if (aiConfigDot) { aiConfigDot.className = 'ai-engine-dot'; aiConfigDot.style.background = '#22C55E'; }
+      } else if (status === 'connecting') {
+        if (textEl) textEl.textContent = 'AI ENGINE • INITIALIZING...';
+        if (dotEl) { dotEl.style.background = '#F59E0B'; dotEl.style.boxShadow = '0 0 8px #F59E0B'; }
+        if (aiConfigStatus) aiConfigStatus.textContent = 'Connecting to Firebase AI Logic...';
+        if (aiConfigDot) { aiConfigDot.className = 'ai-engine-dot connecting'; }
+      } else if (status === 'quota_exceeded') {
+        if (textEl) textEl.textContent = 'AI ENGINE • QUOTA EXCEEDED';
+        if (dotEl) { dotEl.style.background = '#EF4444'; dotEl.style.boxShadow = '0 0 8px #EF4444'; }
+        if (aiConfigStatus) aiConfigStatus.textContent = 'Quota Exceeded (Check Billing)';
+        if (aiConfigDot) { aiConfigDot.className = 'ai-engine-dot offline'; }
+      } else {
+        if (textEl) textEl.textContent = 'AI ENGINE • RESILIENT MODE';
+        if (dotEl) { dotEl.style.background = '#38BDF8'; dotEl.style.boxShadow = '0 0 8px #38BDF8'; }
+        if (aiConfigStatus) aiConfigStatus.textContent = 'Active (Intelligent Engine)';
+        if (aiConfigDot) { aiConfigDot.className = 'ai-engine-dot'; aiConfigDot.style.background = '#38BDF8'; }
+      }
+    });
   }
 
   // --- Device Frame Switcher (Mobile vs Full-Width Responsive) ---

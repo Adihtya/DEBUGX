@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.debugx.app.data.model.AiConnectionState
 import com.debugx.app.data.model.SampleData
 import com.debugx.app.ui.components.SeverityBadge
 import com.debugx.app.ui.theme.*
@@ -41,6 +42,8 @@ fun HomeScreen(
     onNavigateToExplain: () -> Unit = {}
 ) {
     val history by viewModel.history.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val aiState by viewModel.aiConnectionState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -61,18 +64,69 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(AccentPrimary, AccentSecondary))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("DX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    if (!currentUser?.photoURL.isNullOrEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = currentUser?.photoURL,
+                            contentDescription = "Profile Photo",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        val initials = (currentUser?.displayName ?: "DX")
+                            .split(" ")
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .take(2)
+                            .joinToString("")
+                            .uppercase()
+
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(listOf(AccentPrimary, AccentSecondary))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(initials.ifEmpty { "DX" }, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
                     }
                     Column {
-                        Text("Ready to squash some bugs?", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("DebugX Developer Tool", color = TextMuted, fontSize = 12.sp)
+                        val greetingName = currentUser?.displayName?.split(" ")?.firstOrNull() ?: "Developer"
+                        Text("Welcome back, $greetingName", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Ready to squash some bugs?", color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+
+                // AI Engine Indicator Badge
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0x1F7957FF),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x407957FF))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when (aiState) {
+                                        AiConnectionState.CONNECTED -> Color(0xFF22C55E)
+                                        AiConnectionState.CONNECTING -> Color(0xFFF59E0B)
+                                        AiConnectionState.QUOTA_EXCEEDED -> Color(0xFFEF4444)
+                                        else -> Color(0xFF38BDF8)
+                                    }
+                                )
+                        )
+                        Text(
+                            text = if (aiState == AiConnectionState.CONNECTED) "AI CONNECTED" else aiState.label.uppercase(),
+                            color = Color(0xFFA78BFA),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
                 }
             }
