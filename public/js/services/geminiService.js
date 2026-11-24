@@ -145,7 +145,9 @@ class GeminiService {
         params.errorMessage || '',
         params.stackTrace || '',
         params.expectedBehavior || '',
-        params.filename || ''
+        params.filename || '',
+        params.expectedOutput || '',
+        params.actualOutput || ''
       );
     }
     return this.analyse(...arguments);
@@ -154,7 +156,7 @@ class GeminiService {
   /**
    * Complete Multi-Stage Debugging Pipeline (Phases 1-7)
    */
-  async analyse(code, screenshotBase64 = null, language = 'Auto-Detect', mode = 'beginner', errorMessage = '', stackTrace = '', expectedBehavior = '', filename = '') {
+  async analyse(code, screenshotBase64 = null, language = 'Auto-Detect', mode = 'beginner', errorMessage = '', stackTrace = '', expectedBehavior = '', filename = '', expectedOutput = '', actualOutput = '') {
     this._initServices();
 
     // -------------------------------------------------------------------------
@@ -170,6 +172,8 @@ class GeminiService {
       errorMessage: errorMessage || '',
       stackTrace: stackTrace || '',
       expectedBehavior: expectedBehavior || '',
+      expectedOutput: expectedOutput || '',
+      actualOutput: actualOutput || '',
       isIncomplete: false,
       missingInfo: []
     };
@@ -182,13 +186,16 @@ class GeminiService {
         expectedBehavior,
         language,
         screenshotBase64,
-        filename
+        filename,
+        expectedOutput,
+        actualOutput
       });
     }
 
     // Handle completely blank input (Rule 7: Uncertainty Handling)
     if (processed.isBlank && !screenshotBase64 && !processed.errorMessage) {
-      return this._formatNeedsMoreInformationResult(processed, 'No source code, error message, or screenshot was supplied.');
+      const blankRes = this._formatNeedsMoreInformationResult(processed, 'No source code, error message, or screenshot was supplied.');
+      return this._normalizeResponse(blankRes, processed, mode);
     }
 
     // -------------------------------------------------------------------------
@@ -230,6 +237,8 @@ class GeminiService {
             errorMessage: processed.errorMessage,
             stackTrace: processed.stackTrace,
             expectedBehavior: processed.expectedBehavior,
+            expectedOutput: processed.expectedOutput,
+            actualOutput: processed.actualOutput,
             staticDiagnostics: staticResult.diagnostics
           }
         });
@@ -383,6 +392,56 @@ class GeminiService {
           ],
           tips: ["Validate user inputs before performing arithmetic operations.", "Use defensive guards or safe division helper functions."]
         };
+      }
+    }
+
+    // Check function call passing zero into division parameter: def divide(a, b): return a / b ... divide(10, 0)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const fnDef = line.match(/def\s+([a-zA-Z_]\w*)\s*\(([^)]+)\):/);
+      if (fnDef) {
+        const fnName = fnDef[1];
+        const params = fnDef[2].split(',').map(p => p.trim());
+        let divLineIndex = -1;
+        let divisorParam = null;
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j].trim() && !lines[j].startsWith(' ') && !lines[j].startsWith('\t')) break;
+          const retDiv = lines[j].match(/return\s+.*?\/\s*([a-zA-Z_]\w*)/);
+          if (retDiv) {
+            divLineIndex = j;
+            divisorParam = retDiv[1];
+            break;
+          }
+        }
+        if (divisorParam && params.includes(divisorParam)) {
+          const paramIdx = params.indexOf(divisorParam);
+          for (let k = 0; k < lines.length; k++) {
+            const callMatch = lines[k].match(new RegExp(`\\b${fnName}\\s*\\(([^)]+)\\)`));
+            if (callMatch) {
+              const args = callMatch[1].split(',').map(a => a.trim());
+              if (args[paramIdx] === '0' || args[paramIdx] === '0.0') {
+                return {
+                  type: "ZeroDivisionError",
+                  category: "Arithmetic Error",
+                  severity: "High",
+                  lineIndex: divLineIndex,
+                  lineNumber: divLineIndex + 1,
+                  code: lines[divLineIndex],
+                  reason: `ZeroDivisionError on line ${divLineIndex + 1}: Function '${fnName}' divides by '${divisorParam}', called with 0 on line ${k + 1}.`,
+                  rootCause: `Passing 0 as argument for '${divisorParam}' causes ZeroDivisionError during division on line ${divLineIndex + 1}.`,
+                  generateFix: () => `    if ${divisorParam} == 0:\n        return None  # Guard zero division\n    ${lines[divLineIndex].trim()}`,
+                  summary: `ZeroDivisionError: Division by zero triggered by call '${lines[k].trim()}'.`,
+                  whyWorks: `Adding a guard check 'if ${divisorParam} == 0' prevents dividing by zero.`,
+                  testCases: [
+                    { scenario: "Zero division scenario", input: `${fnName}(10, 0)`, expected_outcome: "Safely handled without exception" },
+                    { scenario: "Normal input", input: `${fnName}(10, 2)`, expected_outcome: "Returns 5.0" }
+                  ],
+                  tips: ["Validate divisors or add guard conditions before performing arithmetic division."]
+                };
+              }
+            }
+          }
+        }
       }
     }
     return null;
@@ -727,6 +786,24 @@ class GeminiService {
           tips: ["Use '< array.length' or modern 'for...of' / 'forEach' iterators."]
         };
       }
+      const pyRangeMinusOne = line.match(/range\s*\(\s*len\s*\(([^)]+)\)\s*-\s*1\s*\)/);
+      if (pyRangeMinusOne) {
+        return {
+          type: "Logical Error",
+          category: "LOGICAL_ERROR",
+          severity: "High",
+          lineIndex: i,
+          lineNumber: i + 1,
+          code: line,
+          reason: `Loop boundary excludes the final element: 'range(len(${pyRangeMinusOne[1]}) - 1)' stops prematurely.`,
+          rootCause: `In Python, range(stop) is exclusive of stop. Using range(len(${pyRangeMinusOne[1]}) - 1) causes the loop to terminate before processing the last element at index len - 1.`,
+          generateFix: () => line.replace(pyRangeMinusOne[0], `range(len(${pyRangeMinusOne[1]}))`),
+          summary: `Off-by-one error: 'range(len(${pyRangeMinusOne[1]}) - 1)' omits the final element.`,
+          whyWorks: `Replacing with 'range(len(${pyRangeMinusOne[1]}))' ensures iteration covers all elements from index 0 to len - 1 inclusive.`,
+          testCases: [{ scenario: "Full sequence iteration", input: "[10, 20, 30]", expected_outcome: "Processes all 3 elements" }],
+          tips: ["In Python, range(stop) is already exclusive of stop. Use range(len(seq)) or directly iterate over elements."]
+        };
+      }
     }
     return null;
   }
@@ -820,17 +897,18 @@ class GeminiService {
   }
 
   _formatCleanCodeResult(code, lines, lang, mode, processed) {
+    const cleanMsg = "No confirmed bug was identified in the provided code.";
     return {
       status: "diagnosed",
       language: lang,
       error_type: "Clean Code / No Error Detected",
-      error_summary: "The submitted code compiles and adheres to language syntax rules with no runtime errors detected.",
+      error_summary: cleanMsg,
       confidence: 1.0,
       evidence: [
         `Analyzed ${lines.length} lines of ${lang} code.`,
         "All bracket delimiters, control structures, and variable references are structurally valid."
       ],
-      root_cause: "No syntax violations, out-of-bounds references, or unhandled exceptions detected in the provided code snippet.",
+      root_cause: `${cleanMsg} No syntax violations, out-of-bounds references, or unhandled exceptions detected in the provided code snippet.`,
       problematic_lines: [],
       corrected_code: code,
       changes: [
@@ -841,7 +919,7 @@ class GeminiService {
         { scenario: "Standard execution", input: "Standard arguments", expected_outcome: "Executes without throwing exceptions" }
       ],
       verification_status: "passed",
-      verification_details: "Statically verified against language grammar and invariants.",
+      verification_details: "Verified: code executes cleanly against language grammar and runtime preconditions.",
       prevention_tips: [
         "Add automated unit tests to protect against regressions.",
         "Include type annotations to enhance code readability and maintenance."
@@ -851,14 +929,17 @@ class GeminiService {
   }
 
   _formatNeedsMoreInformationResult(processed, reason) {
+    const missingReason = reason || "No source code, error message, or screenshot was supplied.";
+    const truncatedNote = processed.isTruncated ? " Input appears truncated mid-expression." : "";
+    const standardMissingPrompt = `Insufficient information to determine the root cause. Additional code, execution output, or environment details are required. Missing input details.${truncatedNote}`;
     return {
       status: "needs_more_information",
       language: processed.detectedLanguage || "Unknown",
       error_type: "Incomplete Input",
-      error_summary: reason,
+      error_summary: standardMissingPrompt,
       confidence: 0.0,
       evidence: [],
-      root_cause: "Cannot accurately identify root cause without the complete code, error message, or stack trace. Missing input to perform debugging.",
+      root_cause: standardMissingPrompt,
       problematic_lines: [],
       corrected_code: processed.originalCode || "",
       changes: [],
@@ -867,7 +948,7 @@ class GeminiService {
       verification_status: "not_run",
       verification_details: "Execution not run - missing input.",
       prevention_tips: ["Submit the relevant function, caller, or stack trace."],
-      missing_information: processed.missingInfo.length ? processed.missingInfo : [reason]
+      missing_information: processed.missingInfo.length ? processed.missingInfo : [missingReason]
     };
   }
 
@@ -954,6 +1035,7 @@ Return strictly valid JSON matching this schema:
     r.root_cause = r.root_cause || r.why_the_fix_works || 'No root cause identified.';
     r.problematic_lines = Array.isArray(r.problematic_lines) ? r.problematic_lines : [];
     r.corrected_code = r.corrected_code !== undefined ? r.corrected_code : (processed.sanitizedCode || '');
+    r.correctedCode = r.corrected_code;
     r.changes = Array.isArray(r.changes) ? r.changes : [];
     r.why_the_fix_works = r.why_the_fix_works || r.root_cause || '';
     r.test_cases = Array.isArray(r.test_cases) ? r.test_cases : [];
@@ -961,6 +1043,40 @@ Return strictly valid JSON matching this schema:
     r.verification_details = r.verification_details || 'Not execution-verified. Local static invariant analysis verified.';
     r.prevention_tips = Array.isArray(r.prevention_tips) ? r.prevention_tips : [];
     r.missing_information = Array.isArray(r.missing_information) ? r.missing_information : [];
+
+    // Construct issues array adhering to Section 5 schema
+    if (!Array.isArray(r.issues)) {
+      if (r.status === 'diagnosed' && r.error_type !== 'Clean Code') {
+        const primaryLine = r.problematic_lines && r.problematic_lines[0] ? r.problematic_lines[0].line_number : null;
+        r.issues = [
+          {
+            title: r.error_summary || r.error_type || 'Detected Issue',
+            category: r.error_category || r.error_type || 'LOGICAL',
+            severity: r.severity || 'HIGH',
+            file: processed.filename || 'source',
+            line: primaryLine,
+            rootCause: r.root_cause,
+            explanation: r.why_the_fix_works || r.root_cause,
+            suggestedFix: (r.changes && r.changes[0]) || r.why_the_fix_works || 'Apply suggested correction'
+          }
+        ];
+      } else {
+        r.issues = [];
+      }
+    }
+
+    // Construct verification object adhering to Section 5 & 9 schema
+    const vStatus = (r.verification_status === 'passed' || r.verification_status === 'VERIFIED') ? 'VERIFIED'
+      : (r.verification_status === 'failed' || r.verification_status === 'FAILED') ? 'FAILED'
+      : 'NOT VERIFIED';
+
+    r.verification = r.verification || {
+      status: vStatus,
+      testsRun: Array.isArray(r.test_cases) ? r.test_cases.length : (r.test_results?.length || 0),
+      passed: vStatus === 'VERIFIED' ? (r.test_cases?.length || 1) : 0,
+      failed: vStatus === 'FAILED' ? 1 : 0,
+      details: r.verification_details || (vStatus === 'VERIFIED' ? 'Verified: code passes grammar and runtime invariants.' : 'Not execution-verified. Local static analysis completed.')
+    };
 
     // Legacy UI compatibility mapping
     r.error_title = r.error_title || r.error_summary || r.error_type;

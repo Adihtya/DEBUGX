@@ -458,11 +458,50 @@ print(numbers[5])" spellcheck="false"></textarea>
             </div>
           </div>
 
+          <!-- Diagnostics & Output Comparison Context (Optional) -->
+          <div class="workspace-card" id="outputComparisonSection">
+            <div class="card-header-row">
+              <div class="card-header-left">
+                <span class="step-num">C</span>
+                <h3 class="card-title">Error Logs & Output Context</h3>
+              </div>
+              <span class="file-spec-hint">Optional context</span>
+            </div>
+
+            <div class="output-comparison-grid">
+              <div class="input-field-group">
+                <label class="input-label" for="errorMessageInput">
+                  <span>Error Message or Stack Trace</span>
+                  <span class="label-optional">(optional)</span>
+                </label>
+                <textarea id="errorMessageInput" class="styled-input-text" rows="2" placeholder="e.g. IndexError: list index out of range or compiler error logs..."></textarea>
+              </div>
+
+              <div class="output-duo-row">
+                <div class="input-field-group">
+                  <label class="input-label" for="expectedOutputInput">
+                    <span>Expected Output</span>
+                    <span class="label-optional">(optional)</span>
+                  </label>
+                  <input type="text" id="expectedOutputInput" class="styled-input-text" placeholder="e.g. 100 or [1, 2, 3]">
+                </div>
+
+                <div class="input-field-group">
+                  <label class="input-label" for="actualOutputInput">
+                    <span>Actual Output</span>
+                    <span class="label-optional">(optional)</span>
+                  </label>
+                  <input type="text" id="actualOutputInput" class="styled-input-text" placeholder="e.g. 60 or []">
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Explanation Mode Selection -->
           <div class="workspace-card mode-selector-card">
             <div class="card-header-row">
               <div class="card-header-left">
-                <span class="step-num">C</span>
+                <span class="step-num">D</span>
                 <h3 class="card-title">Explanation Depth</h3>
               </div>
               <span class="mode-tag-current" id="activeModeBadge">Beginner Mode</span>
@@ -563,6 +602,7 @@ print(numbers[5])" spellcheck="false"></textarea>
               <div class="overview-left">
                 <span class="category-pill" id="resCategory">Runtime Error</span>
                 <span class="lang-pill" id="resLanguage">Python</span>
+                <span class="category-pill" id="resConfirmedCount" style="background: rgba(239, 68, 68, 0.15); color: #F87171; border-color: rgba(239, 68, 68, 0.4);">1 Issue</span>
               </div>
               <div class="overview-right">
                 <span class="severity-badge medium" id="resSeverity">Medium Severity</span>
@@ -587,6 +627,17 @@ print(numbers[5])" spellcheck="false"></textarea>
                 <div class="problem-line-tag" id="resProblemLines">Line 2</div>
               </div>
             </div>
+          </div>
+
+          <!-- IDENTIFIED PROBLEMS BREAKDOWN -->
+          <div class="result-card" id="resIssuesCard">
+            <div class="card-section-header">
+              <div class="section-icon-badge icon-red">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3 class="card-title">Identified Problems & Error Category</h3>
+            </div>
+            <div class="issues-list-box" id="resIssuesList"></div>
           </div>
 
           <!-- B. WHAT WENT WRONG? -->
@@ -697,6 +748,17 @@ else:
             <p class="explanation-text" id="resVerificationDetails">
               Not execution-verified. Local static invariant analysis verified against identified root cause.
             </p>
+
+            <div id="resOutputComparisonBox" style="display: none; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px; margin-top: 6px; font-size: 0.78rem;">
+              <div style="font-weight: 600; color: #94A3B8; margin-bottom: 4px;">Output Comparison Analysis:</div>
+              <div style="font-family: var(--font-mono); font-size: 0.74rem;">
+                <span style="color: #64748B;">Expected Output:</span> <span id="resExpectedOutputVal" style="color: #34D399; font-weight: 600;"></span>
+              </div>
+              <div style="font-family: var(--font-mono); font-size: 0.74rem; margin-top: 2px;">
+                <span style="color: #64748B;">Actual Output:</span> <span id="resActualOutputVal" style="color: #F87171; font-weight: 600;"></span>
+              </div>
+            </div>
+
             <div id="resTestCasesBox" style="margin-top: 8px;">
               <div class="metric-mini-label" style="margin-bottom: 6px;">Evaluated Test Scenarios</div>
               <div id="resTestCasesList" style="display: flex; flex-direction: column; gap: 6px;"></div>

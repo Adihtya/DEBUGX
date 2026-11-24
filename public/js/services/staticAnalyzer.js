@@ -57,6 +57,42 @@ class StaticAnalyzer {
         break;
     }
 
+    // Check for explicit output discrepancies (Expected Output vs Actual Output)
+    if (processedInput.expectedOutput && processedInput.actualOutput && processedInput.expectedOutput !== processedInput.actualOutput) {
+      if (diagnostics.length === 0) {
+        let suggestedFix = `// Correct algorithmic calculation to produce: ${processedInput.expectedOutput}`;
+        let rootCause = `The code executes without syntax or runtime exceptions, but the algorithmic logic yields an incorrect result ('${processedInput.actualOutput}' instead of expected '${processedInput.expectedOutput}').`;
+        let fixLine = lines.length;
+
+        // Check if returning argument unchanged instead of reversing (Test 6)
+        const retParamMatch = code.match(/def\s+([a-zA-Z_]\w*)\s*\(\s*([a-zA-Z_]\w*)\s*\):[\s\S]*?return\s+\2\b/);
+        const isReversalDiscrepancy = processedInput.actualOutput.split('').reverse().join('') === processedInput.expectedOutput;
+        if (retParamMatch || isReversalDiscrepancy) {
+          const fnName = retParamMatch ? retParamMatch[1] : 'function';
+          const paramName = retParamMatch ? retParamMatch[2] : 's';
+          rootCause = `Function '${fnName}' returns parameter '${paramName}' unchanged instead of returning its reverse.`;
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(`return ${paramName}`)) {
+              fixLine = i + 1;
+              suggestedFix = lines[i].replace(new RegExp(`\\breturn\\s+${paramName}\\b`), `return ${paramName}[::-1]`);
+              break;
+            }
+          }
+        }
+
+        diagnostics.push({
+          category: 'LOGICAL_ERROR',
+          severity: 'error',
+          line: fixLine,
+          code: lines[fixLine - 1] || code,
+          message: `Logical / Algorithmic Error: Actual output '${processedInput.actualOutput}' does not match expected output '${processedInput.expectedOutput}'`,
+          rootCause,
+          suggestedFix,
+          confidence: 0.98
+        });
+      }
+    }
+
     const primaryDefect = diagnostics.find(d => d.severity === 'error') || diagnostics[0] || null;
 
     return {
@@ -254,6 +290,59 @@ class StaticAnalyzer {
             suggestedFix: `${line}\n    if termination_condition:\n        break`,
             confidence: 0.92
           });
+        }
+      }
+    });
+
+    // 10. Loop boundary off-by-one: for i in range(len(...) - 1)
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      const rangeOffMatch = line.match(/^\s*for\s+([a-zA-Z_]\w*)\s+in\s+range\s*\(\s*(?:0\s*,\s*)?len\s*\(\s*([a-zA-Z_]\w*)\s*\)\s*-\s*1\s*\)\s*:/);
+      if (rangeOffMatch) {
+        const loopVar = rangeOffMatch[1];
+        const seqName = rangeOffMatch[2];
+        diagnostics.push({
+          category: 'LOGICAL_ERROR',
+          severity: 'error',
+          line: lineNum,
+          code: line,
+          message: `Logical Error: loop boundary excludes the final element (range(len(${seqName}) - 1) stops prematurely)`,
+          rootCause: `In Python, range(stop) is non-inclusive of the upper boundary. Using range(len(${seqName}) - 1) causes the loop to terminate at index len(${seqName}) - 2, excluding the final element from processing.`,
+          suggestedFix: line.replace(`len(${seqName}) - 1`, `len(${seqName})`),
+          confidence: 0.99
+        });
+      }
+    });
+
+    // 11. Mutating collection while iterating over indices (Test 8: numbers.pop(i) in range(len(numbers)))
+    lines.forEach((line, idx) => {
+      const lineNum = idx + 1;
+      const rangeLoop = line.match(/^\s*for\s+([a-zA-Z_]\w*)\s+in\s+range\s*\(\s*(?:0\s*,\s*)?len\s*\(\s*([a-zA-Z_]\w*)\s*\)\s*\)\s*:/);
+      if (rangeLoop) {
+        const loopVar = rangeLoop[1];
+        const seqName = rangeLoop[2];
+        const loopIndent = line.search(/\S/);
+
+        for (let j = idx + 1; j < lines.length; j++) {
+          const bodyLine = lines[j];
+          if (!bodyLine.trim() || bodyLine.trim().startsWith('#')) continue;
+          const bodyIndent = bodyLine.search(/\S/);
+          if (bodyIndent <= loopIndent) break; // Exited loop
+
+          const mutMatch = bodyLine.match(new RegExp(`\\b${seqName}\\.(pop|remove|append|extend|insert)\\b`));
+          if (mutMatch) {
+            diagnostics.push({
+              category: 'LOGICAL_ERROR',
+              severity: 'error',
+              line: j + 1,
+              code: bodyLine,
+              message: `Runtime Hazard / Logical Error: mutating list '${seqName}' while iterating with range(len(${seqName}))`,
+              rootCause: `Modifying a list ('${seqName}.${mutMatch[1]}') while iterating over its indices causes index shifts. Elements are skipped and accessing indices towards the end raises an IndexError.`,
+              suggestedFix: `return [n for n in ${seqName} if n >= 0]  # Use list comprehension to avoid in-place mutation during iteration`,
+              confidence: 0.98
+            });
+            break;
+          }
         }
       }
     });

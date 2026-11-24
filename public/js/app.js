@@ -793,9 +793,15 @@ class AppController {
     const code = textarea?.value?.trim() || '';
     const langSelect = document.getElementById('codeLanguageSelect');
     const language = langSelect?.value || 'auto';
+    const errorMsgInput = document.getElementById('errorMessageInput');
+    const errorMessage = errorMsgInput?.value?.trim() || '';
+    const expectedOutInput = document.getElementById('expectedOutputInput');
+    const expectedOutput = expectedOutInput?.value?.trim() || '';
+    const actualOutInput = document.getElementById('actualOutputInput');
+    const actualOutput = actualOutInput?.value?.trim() || '';
 
-    if (!code && !this.uploadedImageBase64) {
-      this.showToast("Please provide code or upload an error screenshot.", "error");
+    if (!code && !this.uploadedImageBase64 && !errorMessage) {
+      this.showToast("Please provide code, error message, or upload a screenshot.", "error");
       return;
     }
 
@@ -806,17 +812,15 @@ class AppController {
 
     if (overlay) overlay.style.display = 'flex';
 
-    // Step 1: Multimodal OCR & Syntax parsing
-    if (progressFill) progressFill.style.width = '30%';
-    if (titleEl) titleEl.textContent = 'Parsing Code & Error Traces...';
+    // Step 1: Input processing & Static Analysis
+    if (progressFill) progressFill.style.width = '35%';
+    if (titleEl) titleEl.textContent = 'Parsing Code & Language Invariants...';
     document.getElementById('stepOCR')?.classList.add('active');
 
-    await new Promise(r => setTimeout(r, 600));
-
-    // Step 2: Isolating root cause with Gemini
+    // Step 2: AI Reasoning & Root Cause Isolation
     if (progressFill) progressFill.style.width = '70%';
-    if (titleEl) titleEl.textContent = 'Consulting Gemini Debugging Engine...';
-    if (subEl) subEl.textContent = 'Analyzing runtime semantics and bounds';
+    if (titleEl) titleEl.textContent = 'Analyzing Runtime Semantics & Logic Invariants...';
+    if (subEl) subEl.textContent = 'Validating control flow and edge cases';
     document.getElementById('stepCause')?.classList.add('active');
 
     // Check if input matches Section 18 sample
@@ -829,15 +833,16 @@ class AppController {
         imageMimeType: this.uploadedImageMime,
         language,
         mode: this.activeExplanationMode,
+        errorMessage,
+        expectedOutput,
+        actualOutput,
         isSample
       });
 
-      // Step 3: Synthesis complete
+      // Step 3: Synthesis & Verification complete
       if (progressFill) progressFill.style.width = '100%';
-      if (titleEl) titleEl.textContent = 'Synthesizing Fix & Prevention Checklist...';
+      if (titleEl) titleEl.textContent = 'Synthesizing Verified Fix & Prevention Tips...';
       document.getElementById('stepFix')?.classList.add('active');
-
-      await new Promise(r => setTimeout(r, 500));
 
       if (overlay) overlay.style.display = 'none';
 
@@ -959,6 +964,49 @@ class AppController {
         : (data.status === 'needs_more_information' ? 'Incomplete' : 'Identified');
     }
 
+    // Confirmed Issues Count Badge
+    const confCountEl = document.getElementById('resConfirmedCount');
+    if (confCountEl) {
+      const isClean = data.status === 'clean' || data.error_type?.includes('Clean Code') || data.error_summary?.includes('No confirmed bug');
+      const count = isClean ? 0 : (Array.isArray(data.issues) && data.issues.length ? data.issues.length : 1);
+      confCountEl.textContent = count === 0 ? '0 Issues Found' : `${count} Confirmed ${count === 1 ? 'Issue' : 'Issues'}`;
+      if (count === 0) {
+        confCountEl.style.background = 'rgba(52, 211, 153, 0.15)';
+        confCountEl.style.color = '#34D399';
+        confCountEl.style.borderColor = 'rgba(52, 211, 153, 0.4)';
+      } else {
+        confCountEl.style.background = 'rgba(239, 68, 68, 0.15)';
+        confCountEl.style.color = '#F87171';
+        confCountEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      }
+    }
+
+    // Issues Breakdown List
+    const issuesListEl = document.getElementById('resIssuesList');
+    if (issuesListEl) {
+      const issues = Array.isArray(data.issues) && data.issues.length > 0
+        ? data.issues
+        : [{
+            title: data.error_title || data.error_type || 'Identified Problem',
+            category: data.error_category || data.error_type || 'Runtime',
+            severity: data.severity || 'Medium',
+            line: errLineNumbers[0] || null,
+            explanation: data.summary || data.error_summary || data.root_cause,
+            code: data.problematic_lines?.[0]?.code || ''
+          }];
+      issuesListEl.innerHTML = issues.map(iss => `
+        <div class="issue-item-card">
+          <div class="issue-item-header">
+            <span class="issue-item-title">${this.escapeHtml(iss.title)}</span>
+            <span class="category-pill">${this.escapeHtml(iss.category || 'Issue')}</span>
+          </div>
+          <div class="issue-item-expl">${this.escapeHtml(iss.explanation || iss.rootCause || '')}</div>
+          ${iss.line ? `<div style="font-size: 0.72rem; color: #94A3B8;">Location: Line ${iss.line}</div>` : ''}
+          ${iss.code ? `<div class="issue-item-code">${this.escapeHtml(iss.code)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
     // What went wrong & Why did it happen
     document.getElementById('resSummary').textContent = data.summary || data.error_summary || 'Analysis complete.';
     document.getElementById('resRootCause').textContent = data.root_cause || data.why_the_fix_works || 'No root cause identified.';
@@ -992,22 +1040,39 @@ class AppController {
       evidenceList.innerHTML = evidence.map(ev => `<li>${this.escapeHtml(ev)}</li>`).join('');
     }
 
+    // Output Comparison Box in Results
+    const outBox = document.getElementById('resOutputComparisonBox');
+    const expOutVal = document.getElementById('resExpectedOutputVal');
+    const actOutVal = document.getElementById('resActualOutputVal');
+    if (outBox && expOutVal && actOutVal) {
+      if (data.expected_output || data.actual_output) {
+        outBox.style.display = 'block';
+        expOutVal.textContent = data.expected_output || 'Not specified';
+        actOutVal.textContent = data.actual_output || 'Not specified';
+      } else {
+        outBox.style.display = 'none';
+      }
+    }
+
     // Verification Status & Test Cases
     const vBadge = document.getElementById('resVerificationBadge');
     const vDetails = document.getElementById('resVerificationDetails');
     const tcList = document.getElementById('resTestCasesList');
 
     if (vBadge) {
-      const vStatus = data.verification_status || 'not_run';
-      if (vStatus === 'passed') {
+      const vStatus = (data.verification?.status || data.verification_status || 'not_verified').toLowerCase();
+      if (vStatus === 'verified' || vStatus === 'passed') {
         vBadge.className = 'severity-badge low';
-        vBadge.textContent = '✓ Execution-Verified (Passed)';
+        vBadge.textContent = '✓ VERIFIED (Execution Passed)';
       } else if (vStatus === 'failed') {
         vBadge.className = 'severity-badge critical';
-        vBadge.textContent = '✗ Execution Failed';
+        vBadge.textContent = '✗ FAILED (Execution Error)';
+      } else if (vStatus === 'partially_verified') {
+        vBadge.className = 'severity-badge medium';
+        vBadge.textContent = '⚠ PARTIALLY VERIFIED';
       } else {
         vBadge.className = 'severity-badge medium';
-        vBadge.textContent = 'Not Execution-Verified (Static Only)';
+        vBadge.textContent = 'NOT VERIFIED (Static Analysis Only)';
       }
     }
 

@@ -67,6 +67,8 @@ serve(async (req: Request) => {
       errorMessage = "",
       stackTrace = "",
       expectedBehavior = "",
+      expectedOutput = "",
+      actualOutput = "",
       language = "Auto-Detect",
       mode = "beginner",
       staticDiagnostics = [],
@@ -210,6 +212,8 @@ ${code ? `Source Code:\n\`\`\`${language}\n${code}\n\`\`\`` : "Source Code: [EMP
 ${errorMessage ? `Error Message:\n${errorMessage}` : ""}
 ${stackTrace ? `Stack Trace:\n${stackTrace}` : ""}
 ${expectedBehavior ? `User Expected Behavior:\n${expectedBehavior}` : ""}
+${expectedOutput ? `Expected Output:\n${expectedOutput}` : ""}
+${actualOutput ? `Actual Output:\n${actualOutput}` : ""}
 ${diagnosticsContext}
 ${screenshotBase64 ? "A screenshot or camera image has been attached." : ""}
 

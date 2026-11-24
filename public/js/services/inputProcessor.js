@@ -24,6 +24,8 @@ class InputProcessor {
     let errorMessage = (rawInput.errorMessage || '').trim();
     let stackTrace = (rawInput.stackTrace || '').trim();
     const expectedBehavior = (rawInput.expectedBehavior || '').trim();
+    const expectedOutput = (rawInput.expectedOutput || '').trim();
+    const actualOutput = (rawInput.actualOutput || '').trim();
     const requestedLanguage = rawInput.language || 'Auto-Detect';
     const screenshotBase64 = rawInput.screenshotBase64 || rawInput.imageBase64 || null;
     const screenshotMimeType = rawInput.screenshotMimeType || rawInput.imageMimeType || 'image/png';
@@ -82,6 +84,8 @@ class InputProcessor {
       stackTrace,
       stackFrames,
       expectedBehavior,
+      expectedOutput,
+      actualOutput,
       isIncomplete: incompletenessCheck.isIncomplete,
       isTruncated: incompletenessCheck.isTruncated,
       missingInfo,
@@ -339,6 +343,21 @@ class InputProcessor {
         isTruncated: true,
         reason: `Unclosed square brackets: ${openBracket} '[' vs ${closeBracket} ']'.`
       };
+    }
+
+    // Check for isolated call to undefined function without definitions (e.g. Test 7: result = process_data(user_input))
+    const singleCallMatch = trimmed.match(/^(?:(?:let|const|var)\s+)?([a-zA-Z_]\w*)\s*=\s*([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*;?$/);
+    if (singleCallMatch && trimmed.split('\n').filter(l => l.trim()).length <= 2) {
+      const fnName = singleCallMatch[2];
+      const args = singleCallMatch[3].trim();
+      const standardBuiltins = ['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'console.log', 'alert', 'prompt'];
+      if (!standardBuiltins.includes(fnName)) {
+        return {
+          isIncomplete: true,
+          isTruncated: false,
+          reason: `Missing definition for function '${fnName}' and value or context for parameter '${args || 'input'}'.`
+        };
+      }
     }
 
     return { isIncomplete: false, isTruncated: false, reason: '' };

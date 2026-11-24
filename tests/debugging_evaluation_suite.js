@@ -436,6 +436,74 @@ const testCases = [
     language: "JavaScript",
     expectedCategory: ["TypeError", "TYPE_ERROR"],
     mustContainInCause: "constant"
+  },
+
+  // --- Group 8: Master Prompt Section 13 Core Verification Scenarios (8 Cases) ---
+  {
+    id: 51,
+    name: "Section 13 Test 1: Python Missing Colon in def calculate_area",
+    code: "def calculate_area(width, height)\n    return width * height",
+    language: "Python",
+    expectedCategory: ["SyntaxError", "SYNTAX_ERROR", "Syntax Error"],
+    mustContainInCause: "colon"
+  },
+  {
+    id: 52,
+    name: "Section 13 Test 2: Python Logical Loop Boundary Exclusion",
+    code: "def sum_list(numbers):\n    total = 0\n    for i in range(len(numbers) - 1):\n        total += numbers[i]\n    return total",
+    language: "Python",
+    expectedCategory: ["Logical Error", "LOGICAL_ERROR"],
+    mustContainInCause: "element"
+  },
+  {
+    id: 53,
+    name: "Section 13 Test 3: Python IndexError Out of Range",
+    code: "numbers = [10, 20, 30]\nprint(numbers[5])",
+    language: "Python",
+    expectedCategory: ["IndexError", "RUNTIME_ERROR_HAZARD", "Runtime Error"],
+    mustContainInCause: "index"
+  },
+  {
+    id: 54,
+    name: "Section 13 Test 4: Python ZeroDivision in divide(10, 0)",
+    code: "def divide(a, b):\n    return a / b\nresult = divide(10, 0)",
+    language: "Python",
+    expectedCategory: ["ZeroDivisionError", "Arithmetic Error", "RUNTIME_ERROR_HAZARD"],
+    mustContainInCause: "zero"
+  },
+  {
+    id: 55,
+    name: "Section 13 Test 5: Python Valid Clean Code add(5, 3)",
+    code: "def add(a, b):\n    return a + b\nresult = add(5, 3)\nprint(result)",
+    language: "Python",
+    expectedCategory: ["Clean Code", "Clean Code / No Error Detected"],
+    mustContainInCause: "No confirmed bug"
+  },
+  {
+    id: 56,
+    name: "Section 13 Test 6: Python Incorrect Algorithm with Expected vs Actual",
+    code: "def reverse_string(s):\n    return s",
+    expectedOutput: "cba",
+    actualOutput: "abc",
+    language: "Python",
+    expectedCategory: ["Logical / Algorithmic Error", "LOGICAL_ERROR", "Logical Error"],
+    mustContainInCause: "reverse"
+  },
+  {
+    id: 57,
+    name: "Section 13 Test 7: Python Missing Context process_data",
+    code: "result = process_data(user_input)",
+    language: "Python",
+    expectedCategory: ["Incomplete Input"],
+    mustContainInCause: "Insufficient information"
+  },
+  {
+    id: 58,
+    name: "Section 13 Test 8: Python Mutating List While Iterating",
+    code: "def remove_negatives(numbers):\n    for i in range(len(numbers)):\n        if numbers[i] < 0:\n            numbers.pop(i)\n    return numbers",
+    language: "Python",
+    expectedCategory: ["LOGICAL_ERROR", "Logical Error", "Runtime Hazard", "RUNTIME_ERROR_HAZARD"],
+    mustContainInCause: "mutat"
   }
 ];
 
@@ -444,7 +512,7 @@ const testCases = [
 // ==============================================================================
 async function runEvaluationSuite() {
   console.log(`\n==============================================================================`);
-  console.log(`  DEBUGX — AI DEBUGGING ENGINE 50-CASE ACCURACY & REGRESSION TEST SUITE`);
+  console.log(`  DEBUGX — AI DEBUGGING ENGINE 58-CASE ACCURACY & REGRESSION TEST SUITE`);
   console.log(`  Prioritizes Correctness over Speed. Verifies Schema, Invariants & Honesty.`);
   console.log(`==============================================================================\n`);
 
@@ -462,6 +530,8 @@ async function runEvaluationSuite() {
         language: tc.language,
         errorMessage: tc.errorMessage,
         stackTrace: tc.stackTrace,
+        expectedOutput: tc.expectedOutput,
+        actualOutput: tc.actualOutput,
         mode: 'advanced'
       });
 
@@ -480,7 +550,10 @@ async function runEvaluationSuite() {
         Array.isArray(res.test_cases) &&
         res.verification_status !== undefined &&
         res.verification_details !== undefined &&
-        Array.isArray(res.prevention_tips)
+        Array.isArray(res.prevention_tips) &&
+        Array.isArray(res.issues) &&
+        res.verification !== undefined &&
+        res.verification.status !== undefined
       );
 
       if (hasRequiredFields) {
