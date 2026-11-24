@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.services)
 }
 
 android {
@@ -73,12 +72,6 @@ dependencies {
 
     // Google Guava for ListenableFuture (CameraX)
     implementation(libs.guava)
-
-    // Firebase BoM & Services
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.storage)
 
     // Google Sign-In with Android Credential Manager
     implementation(libs.androidx.credentials)

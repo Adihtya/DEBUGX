@@ -94,7 +94,7 @@ class DebugViewModel(
         viewModelScope.launch {
             val result = authManager.signInWithGoogle(activityContext)
             result.onSuccess { user ->
-                // Sync profile to Cloud Firestore
+                // Sync profile to Supabase PostgreSQL
                 repository.userProfileRepository.syncProfile(user)
                 // Automatically verify AI Logic connection
                 repository.verifyAiConnection()

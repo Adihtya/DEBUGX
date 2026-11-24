@@ -1,7 +1,6 @@
 package com.debugx.app.data.repository
 
 import android.graphics.Bitmap
-import com.debugx.app.data.firestore.UserProfileRepository
 import com.debugx.app.data.model.*
 import com.debugx.app.data.remote.GeminiService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +42,7 @@ class DebugRepository(
         _currentSession.value = response
         _history.value = listOf(response) + _history.value
 
-        // Automatically sync to Cloud Firestore if user is authenticated
+        // Automatically sync to Supabase PostgreSQL if user is authenticated
         if (!userId.isNullOrEmpty()) {
             userProfileRepository.saveDebuggingSession(userId, response)
         }

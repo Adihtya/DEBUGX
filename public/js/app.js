@@ -838,7 +838,7 @@ class AppController {
       // Store current session
       this.currentSession = result;
 
-      // Automatically persist to history and Cloud Firestore
+      // Automatically persist to history and Supabase PostgreSQL
       window.historyManager?.saveSession(result);
       window.authManager?.saveDebuggingSession(result);
 
@@ -863,7 +863,7 @@ class AppController {
       if (this.currentSession) {
         window.historyManager?.saveSession(this.currentSession);
         window.authManager?.saveDebuggingSession(this.currentSession);
-        this.showToast("Analysis saved to History & Cloud Firestore!", "success");
+        this.showToast("Analysis saved to Supabase PostgreSQL & History!", "success");
       }
     });
 
@@ -1298,7 +1298,7 @@ class AppController {
             msgEl.textContent = `✓ Verified • Ping: ${result.latency}ms`;
           }
           if (latencyEl) latencyEl.textContent = `~${result.latency}ms`;
-          this.showToast(`Firebase AI Logic verified (${result.latency}ms)`, "success");
+          this.showToast(`Supabase Edge Function verified (${result.latency}ms)`, "success");
         } else {
           if (msgEl) {
             msgEl.style.color = '#EF4444';
@@ -1360,7 +1360,7 @@ class AppController {
       } else if (status === 'connecting') {
         if (textEl) textEl.textContent = 'AI ENGINE • INITIALIZING...';
         if (dotEl) { dotEl.style.background = '#F59E0B'; dotEl.style.boxShadow = '0 0 8px #F59E0B'; }
-        if (aiConfigStatus) aiConfigStatus.textContent = 'Connecting to Firebase AI Logic...';
+        if (aiConfigStatus) aiConfigStatus.textContent = 'Connecting to Supabase Edge Function...';
         if (aiConfigDot) { aiConfigDot.className = 'ai-engine-dot connecting'; }
       } else if (status === 'quota_exceeded') {
         if (textEl) textEl.textContent = 'AI ENGINE • QUOTA EXCEEDED';

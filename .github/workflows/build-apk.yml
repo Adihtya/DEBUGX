@@ -27,45 +27,6 @@ jobs:
       - name: Grant Execute Permissions to Gradle Wrapper
         run: chmod +x android/gradlew
 
-      - name: Configure google-services.json for CI
-        run: |
-          if [ ! -f "android/app/google-services.json" ]; then
-            cat << 'EOF' > android/app/google-services.json
-            {
-              "project_info": {
-                "project_number": "987654321098",
-                "project_id": "debugx-studio",
-                "storage_bucket": "debugx-studio.firebasestorage.app"
-              },
-              "client": [
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:987654321098:android:1234567890abcdef123456",
-                    "android_client_info": {
-                      "package_name": "com.debugx.app"
-                    }
-                  },
-                  "oauth_client": [],
-                  "api_key": [{ "current_key": "AIzaSyDebugXAndroidCIKeyPlaceholder" }],
-                  "services": {}
-                },
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:987654321098:android:abcdef1234567890abcdef",
-                    "android_client_info": {
-                      "package_name": "com.debugx.app.debug"
-                    }
-                  },
-                  "oauth_client": [],
-                  "api_key": [{ "current_key": "AIzaSyDebugXAndroidCIKeyPlaceholder" }],
-                  "services": {}
-                }
-              ],
-              "configuration_version": "1"
-            }
-          EOF
-          fi
-
       - name: Build Debug APK with Gradle
         working-directory: android
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
@@ -78,7 +39,7 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DebugX-v1.3.0-apk
+          name: DebugX-v2.0.0-apk
           path: "**/*.apk"
           if-no-files-found: error
           retention-days: 30
@@ -87,18 +48,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.0
-          name: "DebugX v1.3.0 - Firebase Auth & Automatic Gemini Integration (Android APK)"
+          tag_name: v2.0.0
+          name: "DebugX v2.0.0 - Supabase Migration (Auth, Database, Storage & Edge Functions)"
           body: |
-            ### 🚀 DebugX Android APK Release (v1.3.0)
+            ### 🚀 DebugX Android APK Release (v2.0.0)
 
             **Find the Bug. Understand the Cause. Fix with Confidence.**
 
-            #### ✨ What's New in v1.3.0: AUTHENTICATION & AUTOMATIC GEMINI INTEGRATION
-            - 🔐 **Google Sign-In with Firebase Auth:** Real Google Authentication via Android Credential Manager.
-            - ⚡ **Automatic Gemini AI Connection:** Seamless integration through Firebase AI Logic — zero manual API key entry required!
-            - 📊 **Cloud Firestore Persistence:** Secure user profiles (`users/{uid}`) and cloud-synced debugging history.
-            - 🛡️ **Production-Grade Security Rules:** Verified user data isolation and DoS protection for Firestore & Cloud Storage.
+            #### ✨ What's New in v2.0.0: COMPLETE MIGRATION TO SUPABASE
+            - 🔐 **Supabase Authentication:** Google Sign-In with Android Credential Manager & Supabase Auth.
+            - 🐘 **Supabase PostgreSQL:** Complete database migration with Row Level Security (RLS) on `profiles`, `debugging_history`, and `user_preferences`.
+            - 📦 **Supabase Storage:** Isolated private bucket (`debugx-uploads`) for captured error screenshots and camera snaps.
+            - ⚡ **Supabase Edge Functions + Gemini 1.5 Flash:** Server-side AI execution with zero client API key exposure.
+            - 🛡️ **Zero Firebase Dependencies:** All Firebase SDKs and configuration files completely removed.
             - 🧠 **Retains all features:** Explain My Code, AST loop/function visualizers, Live Camera (CameraX), and Multimodal Vision debugging.
 
             #### 📲 Download & Install
@@ -106,7 +68,7 @@ jobs:
             - **Package:** `com.debugx.app`
             - **Target SDK:** Android 14 (API 34)
             - **Min SDK:** Android 8.0 (API 26)
-            - **Built with:** Kotlin, Jetpack Compose, CameraX, Firebase Auth, Cloud Firestore, Firebase AI Logic
+            - **Built with:** Kotlin, Jetpack Compose, CameraX, Supabase Auth, PostgreSQL, Supabase Edge Functions & Gemini 1.5 Flash
           files: "**/*.apk"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

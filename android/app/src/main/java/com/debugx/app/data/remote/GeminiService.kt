@@ -31,7 +31,7 @@ class GeminiService(
     fun hasApiKey(): Boolean = true
 
     /**
-     * Verifies the AI engine connection automatically through Firebase configuration
+     * Verifies the AI engine connection through Supabase Edge Function (analyze-code)
      */
     suspend fun verifyConnection(): Result<Long> = withContext(Dispatchers.IO) {
         _connectionState.value = AiConnectionState.CONNECTING

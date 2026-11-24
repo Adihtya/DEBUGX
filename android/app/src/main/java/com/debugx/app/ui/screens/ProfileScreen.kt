@@ -115,8 +115,8 @@ fun ProfileScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderAccent)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("AI Configuration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Automatic integration via Firebase AI Logic. No manual API keys required.", color = TextSecondary, fontSize = 12.sp)
+                    Text("AI & Backend Configuration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Powered by Supabase Edge Functions & Google Gemini 1.5 Flash.", color = TextSecondary, fontSize = 12.sp)
 
                     Column(
                         modifier = Modifier
@@ -127,8 +127,8 @@ fun ProfileScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("AI PROVIDER", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text("Firebase AI Logic", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("BACKEND & AI", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Supabase Edge Function", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("CONFIGURED MODEL", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -270,7 +270,7 @@ fun ProfileScreen(
             title = { Text("Delete Account?", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Are you sure you want to permanently delete your account? This will erase your Cloud Firestore developer profile and debugging history.",
+                    "Are you sure you want to permanently delete your account? This will erase your Supabase PostgreSQL developer profile and debugging history.",
                     color = Color(0xFFB3B3B3),
                     fontSize = 13.sp
                 )

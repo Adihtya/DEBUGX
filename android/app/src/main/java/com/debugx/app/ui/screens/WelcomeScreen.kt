@@ -211,9 +211,9 @@ fun WelcomeScreen(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FeatureCheckItem("Automatic Firebase AI Logic integration")
-                        FeatureCheckItem("Zero API key setup needed")
-                        FeatureCheckItem("Cloud Firestore user profile & history")
+                        FeatureCheckItem("Supabase Authentication with Google OAuth")
+                        FeatureCheckItem("Server-side Gemini 1.5 Flash via Edge Function")
+                        FeatureCheckItem("Supabase PostgreSQL user profile & history (RLS)")
                     }
 
                     // Legal links
@@ -247,7 +247,7 @@ fun WelcomeScreen(
             title = { Text("Privacy Policy", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "DebugX only requests authentication details (Google UID, Name, Email, Profile Picture) to provide personal debugging history and preferences. Code snippets and screenshots are processed in-memory by Firebase AI Logic and are never used to train public models without consent.",
+                    "DebugX only requests authentication details (Google UID, Name, Email, Profile Picture) to provide personal debugging history and preferences. Code snippets and screenshots are processed securely server-side by Supabase Edge Functions and are never used to train public models without consent.",
                     color = Color(0xFFB3B3B3),
                     fontSize = 13.sp,
                     lineHeight = 18.sp

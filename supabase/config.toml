@@ -1,0 +1,4 @@
+project_id = "debugx-studio"
+
+[functions.analyze-code]
+verify_jwt = false

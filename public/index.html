@@ -127,15 +127,15 @@
               <div class="auth-features-preview">
                 <div class="auth-feat-item">
                   <span class="feat-check">✓</span>
-                  <span>Automatic Gemini AI initialization via Firebase</span>
+                  <span>Supabase Authentication with Google OAuth</span>
                 </div>
                 <div class="auth-feat-item">
                   <span class="feat-check">✓</span>
-                  <span>Zero manual API key configuration</span>
+                  <span>Server-side Gemini 1.5 Flash via Supabase Edge Functions</span>
                 </div>
                 <div class="auth-feat-item">
                   <span class="feat-check">✓</span>
-                  <span>Cloud Firestore sync for profile & history</span>
+                  <span>Supabase PostgreSQL & Storage with Row Level Security (RLS)</span>
                 </div>
               </div>
 
@@ -1226,26 +1226,34 @@ else:
             </div>
           </div>
 
-          <!-- AI Configuration Box (Firebase AI Logic) -->
+          <!-- AI Configuration Box (Supabase Edge Function + Gemini) -->
           <div class="settings-card" id="aiConfigCard">
             <div class="settings-card-header">
               <div class="settings-icon icon-violet">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-6 6l-2 2m-6 6l-2 2"/><path d="M3 7l2 2m6-6l2 2m6 6l2 2"/><circle cx="12" cy="12" r="3"/></svg>
               </div>
               <div>
-                <h4 class="settings-title">AI Configuration</h4>
-                <p class="settings-desc">Powered by Firebase AI Logic & Gemini Developer API</p>
+                <h4 class="settings-title">AI & Backend Configuration</h4>
+                <p class="settings-desc">Powered by Supabase Edge Functions & Google Gemini 1.5 Flash</p>
               </div>
             </div>
 
             <div class="ai-config-grid">
               <div class="ai-config-item">
-                <span class="ai-config-label">AI Provider</span>
-                <span class="ai-config-value" id="aiConfigProvider">Firebase AI Logic</span>
+                <span class="ai-config-label">AI Engine</span>
+                <span class="ai-config-value" id="aiConfigProvider">Supabase Edge Function</span>
               </div>
               <div class="ai-config-item">
                 <span class="ai-config-label">Active Model</span>
                 <span class="ai-config-value" id="aiConfigModel">Gemini 1.5 Flash</span>
+              </div>
+              <div class="ai-config-item">
+                <span class="ai-config-label">Database</span>
+                <span class="ai-config-value" style="color: #3ecf8e;">Supabase PostgreSQL (RLS)</span>
+              </div>
+              <div class="ai-config-item">
+                <span class="ai-config-label">Storage Bucket</span>
+                <span class="ai-config-value" style="color: #38bdf8;">debugx-uploads</span>
               </div>
               <div class="ai-config-item">
                 <span class="ai-config-label">Service Status</span>
@@ -1263,13 +1271,13 @@ else:
             <div class="api-key-actions-row">
               <button class="btn btn-sm btn-outline btn-retry-ai" id="retryAiConnectionBtn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                <span>Test / Verify Connection</span>
+                <span>Test / Verify Edge Function</span>
               </button>
               <span class="api-key-status-msg" id="aiVerificationMsg"></span>
             </div>
 
             <p class="api-note">
-              🔒 Connected automatically through Firebase project configuration. Users never need to generate or paste API keys.
+              🔒 Powered by Supabase Edge Functions with Row Level Security. Gemini API secrets are stored securely on the Edge server and never exposed to the client.
             </p>
           </div>
 
@@ -1540,8 +1548,8 @@ else:
       </div>
       <div class="modal-body" style="font-size: 0.82rem; line-height: 1.5; color: #b3b3b3;">
         <p><strong style="color: #fff;">1. Data Minimization:</strong> DebugX only requests authentication details (Google UID, Name, Email, Profile Picture) to provide personalized debugging history and settings.</p>
-        <p><strong style="color: #fff;">2. Code & Screenshots:</strong> Your code snippets, stack traces, and screenshots are processed in-memory by Firebase AI Logic for debugging and explanation. They are never sold or used to train third-party public models without consent.</p>
-        <p><strong style="color: #fff;">3. Local & Cloud Storage:</strong> Session history is stored securely under your isolated Firestore path (<code>users/{uid}/debuggingHistory</code>) and local cache.</p>
+        <p><strong style="color: #fff;">2. Code & Screenshots:</strong> Your code snippets, stack traces, and screenshots are processed server-side by the Supabase Edge Function for debugging and explanation. They are never sold or used to train public models without consent.</p>
+        <p><strong style="color: #fff;">3. Local & Cloud Storage:</strong> Session history is stored securely under your isolated Supabase PostgreSQL tables (protected by Row Level Security) and Supabase Storage bucket.</p>
         <p><strong style="color: #fff;">4. Account Deletion:</strong> You can permanently delete your account and all associated cloud data at any time from Profile &gt; Delete Account.</p>
       </div>
     </div>
@@ -1572,9 +1580,10 @@ else:
       <div class="modal-body" style="font-size: 0.82rem; line-height: 1.5; color: #b3b3b3;">
         <p>Are you sure you want to delete your account? This action is <strong style="color: #EF4444;">permanent</strong> and will delete:</p>
         <ul style="padding-left: 18px; margin: 8px 0;">
-          <li>Your Cloud Firestore developer profile</li>
+          <li>Your Supabase PostgreSQL developer profile & preferences</li>
           <li>All saved debugging history and explanations</li>
-          <li>Your active authentication session</li>
+          <li>All uploaded screenshots in Supabase Storage</li>
+          <li>Your active Supabase authentication session</li>
         </ul>
         <div style="display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end;">
           <button class="btn btn-sm btn-secondary" id="cancelDeleteAccountBtn">Cancel</button>
@@ -1584,11 +1593,16 @@ else:
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="js/firebase-config.js"></script>
-  <script src="js/auth.js"></script>
+  <!-- Supabase & App Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/services/authService.js"></script>
+  <script src="js/services/profileService.js"></script>
+  <script src="js/services/preferencesService.js"></script>
+  <script src="js/services/debuggingService.js"></script>
+  <script src="js/services/storageService.js"></script>
+  <script src="js/services/geminiService.js"></script>
   <script src="js/sampleData.js"></script>
-  <script src="js/gemini.js"></script>
   <script src="js/history.js"></script>
   <script src="js/learn.js"></script>
   <script src="js/app.js"></script>
